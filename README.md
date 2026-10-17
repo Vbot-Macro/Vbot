@@ -85,7 +85,7 @@ Noclip, any TPS other than 240, and any speed other than 1 count as **cheats**. 
 
 - **Noclip:** ignores deaths. The anticheat spike still kills.
 - **Hitboxes:** draws the game's own hitboxes in any mode. The readout shows how many vertices were drawn.
-- **TPS Bypass:** runs physics at a higher tick rate (240 or higher). More TPS makes physics *more precise*; it doesn't make the game faster. It is experimental, and on slower phones a very high value can lag. If so, try 480 or 960. The Physics readout shows the steps per second the game really ran.
+- **TPS Bypass:** runs physics at a higher tick rate (240 or higher). More TPS makes physics *more precise*; it doesn't make the game faster. It is experimental and works on **Android 64-bit and Windows** (game 2.2081). Vbot changes the game's own step count with a small patch (only switched on while the bypass is running), so the game itself runs the extra steps. If the patch can't be used, the bypass stays off and tells you why. The Physics readout shows the steps per second the game really ran. On slower phones a very high value can lag; try 480 or 960.
 - **Speed hack:** plays the whole game faster or slower (0.1 to 10). It doesn't change the music's speed, and the pause menu keeps its normal speed.
 
 Macros remember the TPS they were recorded at, and Vbot warns you if you replay one at a different TPS.
@@ -150,6 +150,7 @@ The reference reader and writer is [`src/vb.hpp`](src/vb.hpp), a single header w
 | "FFmpeg API missing" when you press Render | Install **FFmpeg API** from Geode's mod list and restart the game. |
 | The render has no sound | The song may start after 0:00, or **Include level audio** is off. Vbot tells you when it skips audio. |
 | The game lags with the TPS bypass | Lower the TPS (480 is a good start). Cost grows with the number. |
+| A toast says "TPS bypass unavailable" | The bypass only works on Android 64-bit and Windows with Geometry Dash 2.2081. If the toast names another mod (Silicate, for example), turn that mod off, because both change the same part of the game. |
 | A level won't count | Noclip, a TPS other than 240, or a speed other than 1 is on. |
 
 ## Building
@@ -177,8 +178,13 @@ geode build
 - [ ] Hitbox trail
 - [ ] Position data for both players on every input (better 2-player accuracy)
 
+## License
+
+Vbot is released under the [GNU General Public License v3.0](LICENSE).
+
 ## Credits
 
 - Made by [T1fyOwO](https://github.com/T1fyOwO)
 - Built on the [Geode SDK](https://github.com/geode-sdk/geode)
+- The TPS step patch location and Windows bytes come from [Echo](https://github.com/lcm7341/echo-beta) (GPL-3.0), which took them from Silicate (GPL-3.0)
 - Video rendering uses [FFmpeg API](https://geode-sdk.org/mods/eclipse.ffmpeg-api) by the Eclipse Team and contributors
