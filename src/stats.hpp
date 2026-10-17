@@ -12,6 +12,8 @@ struct Stats {
 
     // Size of the last physics step the game ran, in seconds (0 = unknown).
     double lastStepDt = 0.0;
+    // How the TPS bypass is changing the step rate right now: "step patch", "scheduler" or "" (off).
+    const char* tpsMethod = "";
     // The game ignored our short steps (it still stepped at ~1/240), so the bypass switched itself off.
     bool bypassIgnored = false;
 
