@@ -19,7 +19,8 @@ struct Config {
     int tps = NORMAL_TPS;
     bool speedHack = false;
     float speed = 1.0f;       // game speed multiplier while the speed hack is on
-    bool tpsScheduler = true; // TPS bypass method: tick the whole game (true) or only physics (false)
+    // Not saved: set when the TPS bypass can't run on this device/game version. It then counts as off.
+    bool tpsUnavailable = false;
 
     // renderer
     int renderWidth = 1920;
@@ -37,7 +38,7 @@ struct Config {
 
     // The tick rate the game is actually running at.
     int effectiveTps() const {
-        return tpsBypass ? tps : NORMAL_TPS;
+        return (tpsBypass && !tpsUnavailable) ? tps : NORMAL_TPS;
     }
 
     // Game speed multiplier actually in effect.
@@ -60,7 +61,6 @@ struct Config {
         mod->setSavedValue<int>("tps", tps);
         mod->setSavedValue<bool>("speed-hack", speedHack);
         mod->setSavedValue<float>("speed", speed);
-        mod->setSavedValue<bool>("tps-whole-game", tpsScheduler);
         mod->setSavedValue<int>("render-width", renderWidth);
         mod->setSavedValue<int>("render-height", renderHeight);
         mod->setSavedValue<int>("render-fps", renderFps);
@@ -82,7 +82,6 @@ private:
         c.tps = mod->getSavedValue<int>("tps", c.tps);
         c.speedHack = mod->getSavedValue<bool>("speed-hack", c.speedHack);
         c.speed = mod->getSavedValue<float>("speed", c.speed);
-        c.tpsScheduler = mod->getSavedValue<bool>("tps-whole-game", c.tpsScheduler);
         c.renderWidth = mod->getSavedValue<int>("render-width", c.renderWidth);
         c.renderHeight = mod->getSavedValue<int>("render-height", c.renderHeight);
         c.renderFps = mod->getSavedValue<int>("render-fps", c.renderFps);
