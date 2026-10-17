@@ -119,7 +119,6 @@ protected:
         addToggle(1, "Noclip", cfg.noclip, menu_selector(VbotMenu::onNoclip), {-150.f, 70.f});
         addToggle(1, "Hitboxes", cfg.hitboxes, menu_selector(VbotMenu::onHitboxes), {10.f, 70.f});
         addToggle(1, "TPS Bypass", cfg.tpsBypass, menu_selector(VbotMenu::onTpsToggle), {-150.f, 34.f});
-        addToggle(1, "Whole game", cfg.tpsScheduler, menu_selector(VbotMenu::onTpsScheduler), {10.f, 34.f});
         addToggle(1, "Speed hack", cfg.speedHack, menu_selector(VbotMenu::onSpeedToggle), {-150.f, -2.f});
 
         addInput(1, "TPS (240+)", std::to_string(cfg.tps), 100.f, CommonFilter::Uint, {-95.f, -44.f},
@@ -254,8 +253,10 @@ protected:
         if (m_cheatStatus1) {
             std::string phys = (st.stepsPerSec == 0 && st.updatesPerSec == 0)
                 ? std::string("Physics: no data yet, play a level first")
-                : fmt::format("Physics: {} steps/s, {} updates/s, step 1/{}{}", st.stepsPerSec, st.updatesPerSec,
+                : fmt::format("Physics: {} steps/s, {} updates/s, step 1/{}{}{}", st.stepsPerSec, st.updatesPerSec,
                               st.lastStepDt > 0 ? static_cast<int>(1.0 / st.lastStepDt + 0.5) : 0,
+                              vbot::Config::get().tpsUnavailable ? std::string(" [TPS bypass unavailable here]")
+                                                                  : (st.tpsMethod[0] ? fmt::format(" [{}]", st.tpsMethod) : std::string()),
                               st.bypassIgnored ? " (bypass ignored by game)" : "");
             m_cheatStatus1->setString(phys.c_str());
         }
@@ -361,16 +362,6 @@ protected:
         auto& cfg = vbot::Config::get();
         cfg.speedHack = value;
         cfg.save();
-    }
-
-    void onTpsScheduler(CCObject* sender) {
-        auto* toggle = static_cast<CCMenuItemToggler*>(sender);
-        bool value = !toggle->isToggled();
-        toggle->toggle(value);
-        auto& cfg = vbot::Config::get();
-        cfg.tpsScheduler = value;
-        cfg.save();
-        vbot::Stats::get().bypassIgnored = false; // give the new method a fresh try
     }
 
     void onTpsToggle(CCObject* sender) {
