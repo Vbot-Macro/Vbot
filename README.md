@@ -85,7 +85,7 @@ Noclip, any TPS other than 240, and any speed other than 1 count as **cheats**. 
 
 - **Noclip:** ignores deaths. The anticheat spike still kills.
 - **Hitboxes:** draws the game's own hitboxes in any mode. The readout shows how many vertices were drawn.
-- **TPS Bypass:** runs physics at a higher tick rate (240 or higher). More TPS makes physics *more precise*; it doesn't make the game faster. It is experimental and works on **Android 64-bit and Windows** (game 2.2081). Vbot changes the game's own step count with a small patch (only switched on while the bypass is running), so the game itself runs the extra steps. If the patch can't be used, the bypass stays off and tells you why. The Physics readout shows the steps per second the game really ran. On slower phones a very high value can lag; try 480 or 960.
+- **TPS Bypass:** runs physics at a higher tick rate (240 up to 6000). More TPS makes physics *more precise*; it doesn't make the game faster. It is experimental and works on **Android 64-bit and Windows** (game 2.2081). Vbot changes the game's own step count with a small patch (only switched on while the bypass is running), so the game itself runs the extra steps. If the patch can't be used, the bypass stays off and tells you why. The Physics readout shows the steps per second the game really ran. On slower phones a very high value can lag; try 480 or 960.
 - **Speed hack:** plays the whole game faster or slower (0.1 to 10). It doesn't change the music's speed, and the pause menu keeps its normal speed.
 
 Macros remember the TPS they were recorded at, and Vbot warns you if you replay one at a different TPS.
