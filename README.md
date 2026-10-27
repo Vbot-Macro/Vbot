@@ -13,7 +13,7 @@
   <b>Version</b> 1.0.4-beta &nbsp;·&nbsp; <b>Game</b> 2.2081 &nbsp;·&nbsp; <b>Platforms</b> Windows, Android (64-bit)
 </p>
 
-> **Beta.** Recording, replaying and the menu are the core of Vbot. The renderer, the TPS bypass and accurate macros are new and still being tested, so expect rough edges. If something breaks, please [open an issue](https://github.com/T1fyOwO/Vbot/issues).
+> **Beta.** Recording, replaying and the menu are the core of Vbot. The renderer, the TPS bypass and the position snapshots in macros are new and still being tested, so expect rough edges. If something breaks, please [open an issue](https://github.com/T1fyOwO/Vbot/issues).
 
 ---
 
@@ -23,10 +23,10 @@
 | --- | --- |
 | **Record** | Practice mode only. Build one macro across as many attempts as you like, using checkpoints. |
 | **Replay** | Play a saved macro back from frame 0. |
-| **Accurate macros** | Optionally saves the player's position with every input and snaps back to it on replay, so long macros don't drift. |
+| **Accurate macros** | Always on. Every macro stores snapshots of the player's position (both players in a 2-player level) and replay puts the player back if it has drifted, so long macros stay on track. |
 | **Render** | Turns a replay into an `.mp4` with the level's song, through [FFmpeg API](https://geode-sdk.org/mods/eclipse.ffmpeg-api). |
 | **Cheats** | Noclip, hitboxes, a TPS bypass and a speed hack. |
-| **`.vb` format** | Vbot's own macro format. About 1.8 bytes per input. |
+| **`.vb` format** | Vbot's own compact macro format. |
 | **Full menu** | One popup with Macro, Cheats and Render tabs. Everything you change is saved right away. |
 
 ## Install
@@ -75,7 +75,7 @@ Videos are saved in `config/t1fy.vbot/Renders`. Vbot never overwrites an earlier
 
 | Tab | What's in it |
 | --- | --- |
-| **Macro** | Macro name (with previous/next arrows), **Record**, **Replay**, **Stop**, the **Accurate** switch and a status line. |
+| **Macro** | Macro name (with previous/next arrows), **Record**, **Replay**, **Stop** and a status line. |
 | **Cheats** | **Noclip**, **Hitboxes**, **TPS Bypass** with a TPS box, **Speed hack** with a speed box, and live readouts. |
 | **Render** | Width, height, render FPS, bitrate (Mbps), codec, output name, **Include level audio** and the **Render** button. |
 
@@ -115,11 +115,12 @@ Vbot saves macros in its own compact binary format. Everything is a plain byte o
 
 ```
 "VBOT"          4 bytes   magic
-version         1 byte    1 or 2
-flags           1 byte    version 2 only: bit 0 = every event is followed by x, y, y-velocity
+version         1 byte    1, 2 or 3
 fps             varint    physics ticks per second (240 by default)
 event count     varint    number of inputs that follow
-events          count x varint (each one followed by 12 bytes of position data in version 2)
+events          count x varint
+snapshot count  varint    version 3 only
+snapshots       count x ( delta varint, mask byte, 12 bytes per player in the mask )   version 3 only
 ```
 
 Each event is one varint:
@@ -135,7 +136,17 @@ Each event is one varint:
 | `down` | `1` press, `0` release |
 | `player` | `0` player 1, `1` player 2 |
 
-**Version 1** stores inputs only, so replays depend on the game's physics behaving the same way each time. **Version 2** ("accurate" macros) adds the player's position and vertical speed to every input: x, y and y-velocity as three little-endian `float32` values. An x of NaN means there's no data for that input. Macros without position data are still written as version 1, and Vbot reads both.
+A **snapshot** is the state of the player(s) at the start of one physics step:
+
+| Field | Meaning |
+| --- | --- |
+| `delta` | frames since the previous snapshot (the first one counts from frame 0) |
+| `mask` | bit 0: player 1 is included, bit 1: player 2 is included |
+| per player | x, y and y-velocity as three little-endian `float32` values (12 bytes) |
+
+Vbot takes a snapshot at every frame that has an input and one every 1/8 s, for both players in a 2-player level. On replay, a player that has drifted from its snapshot is put back to it; one that matches is left alone.
+
+**Version 1** stores inputs only, so replays depend on the game's physics behaving the same way each time. **Version 3** is version 1 plus the snapshots, and is what Vbot writes. **Version 2** was an older layout that stored the pressing player's position after every event; Vbot still reads it. A macro with no position data is written as version 1.
 
 Varints are LEB128: 7 bits per byte, with the top bit set when more bytes follow. A gap of fewer than 8 frames fits in a single byte per input.
 
@@ -146,7 +157,7 @@ The reference reader and writer is [`src/vb.hpp`](src/vb.hpp), a single header w
 | Problem | Try this |
 | --- | --- |
 | Record says "only works in practice mode" | Turn on practice mode in the level first. |
-| The replay drifts or dies in a tricky section | Replay with **Accurate** off, and record at 240 TPS. Very high TPS values are the hardest to match. |
+| The replay drifts or dies in a tricky section | Record and replay at the same TPS (Vbot warns you if they differ), and record again if the level changed. Very high TPS values are the hardest to match. |
 | "FFmpeg API missing" when you press Render | Install **FFmpeg API** from Geode's mod list and restart the game. |
 | The render has no sound | The song may start after 0:00, or **Include level audio** is off. Vbot tells you when it skips audio. |
 | The game lags with the TPS bypass | Lower the TPS (480 is a good start). Cost grows with the number. |
@@ -172,11 +183,10 @@ geode build
 - [x] Custom macro names and the `config/t1fy.vbot` folders
 - [x] Practice-mode recording across checkpoints
 - [x] Noclip, hitboxes, TPS bypass and speed hack
-- [x] Optional position data for more accurate replays
+- [x] Position snapshots for both players, for accurate replays
 - [x] FFmpeg video rendering with the level's song
 - [ ] Songs that start partway in, sound effects and song triggers in renders
 - [ ] Hitbox trail
-- [ ] Position data for both players on every input (better 2-player accuracy)
 
 ## License
 
