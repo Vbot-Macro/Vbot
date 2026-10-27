@@ -105,9 +105,6 @@ protected:
         addButton(0, "Replay", menu_selector(VbotMenu::onReplay), {0.f, 0.f});
         addButton(0, "Stop", menu_selector(VbotMenu::onStop), {95.f, 0.f});
 
-        addToggle(0, "Accurate (save player position)", cfg.accurate, menu_selector(VbotMenu::onAccurate),
-                  {-120.f, -62.f});
-
         m_status = addLabel(0, "", {0.f, -34.f}, .42f);
         addLabel(0, "Macros are saved in config/t1fy.vbot/Macros", {0.f, -100.f}, .3f);
     }
@@ -328,15 +325,6 @@ protected:
         toggle->toggle(value);
         auto& cfg = vbot::Config::get();
         cfg.noclip = value;
-        cfg.save();
-    }
-
-    void onAccurate(CCObject* sender) {
-        auto* toggle = static_cast<CCMenuItemToggler*>(sender);
-        bool value = !toggle->isToggled();
-        toggle->toggle(value);
-        auto& cfg = vbot::Config::get();
-        cfg.accurate = value;
         cfg.save();
     }
 
