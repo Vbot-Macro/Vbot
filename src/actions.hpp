@@ -90,6 +90,9 @@ inline void toggleRecord() {
     }
 
     s.macro.inputs.clear();
+    s.macro.snaps.clear();
+    s.step.frame = 0xFFFFFFFFu;
+    s.forceSnap = false;
     s.mode = Mode::Recording;
     toast("Recording. Place checkpoints and keep going: every attempt is added until you stop.");
 }
@@ -115,6 +118,7 @@ inline bool armReplay(bool quiet = false) {
     s.macro = std::move(*macro);
     s.mode = Mode::Replaying;
     s.nextInput = 0;
+    s.nextSnap = 0;
 
     if (static_cast<int>(s.macro.fps) != cfg.effectiveTps()) {
         toast(fmt::format("Warning: recorded at {} TPS, but you are at {} TPS.", s.macro.fps,
