@@ -1,11 +1,13 @@
 // settings.hpp - every Vbot setting that the menu changes. Saved between sessions.
 #pragma once
 #include <Geode/Geode.hpp>
+#include <algorithm>
 #include <string>
 
 namespace vbot {
 
 constexpr int NORMAL_TPS = 240;
+constexpr int MAX_TPS = 6000; // highest TPS the bypass accepts
 
 struct Config {
     // macros
@@ -76,7 +78,7 @@ private:
         c.noclip = mod->getSavedValue<bool>("noclip", c.noclip);
         c.hitboxes = mod->getSavedValue<bool>("hitboxes", c.hitboxes);
         c.tpsBypass = mod->getSavedValue<bool>("tps-bypass", c.tpsBypass);
-        c.tps = mod->getSavedValue<int>("tps", c.tps);
+        c.tps = std::clamp(mod->getSavedValue<int>("tps", c.tps), NORMAL_TPS, MAX_TPS);
         c.speedHack = mod->getSavedValue<bool>("speed-hack", c.speedHack);
         c.speed = mod->getSavedValue<float>("speed", c.speed);
         c.renderWidth = mod->getSavedValue<int>("render-width", c.renderWidth);
