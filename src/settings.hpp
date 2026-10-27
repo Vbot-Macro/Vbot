@@ -10,7 +10,6 @@ constexpr int NORMAL_TPS = 240;
 struct Config {
     // macros
     std::string macroName = "last";
-    bool accurate = true; // record player position with every input, snap back to it on replay
 
     // cheats
     bool noclip = false;
@@ -54,7 +53,6 @@ struct Config {
     void save() const {
         auto* mod = geode::Mod::get();
         mod->setSavedValue<std::string>("macro-name", macroName);
-        mod->setSavedValue<bool>("accurate", accurate);
         mod->setSavedValue<bool>("noclip", noclip);
         mod->setSavedValue<bool>("hitboxes", hitboxes);
         mod->setSavedValue<bool>("tps-bypass", tpsBypass);
@@ -75,7 +73,6 @@ private:
         auto* mod = geode::Mod::get();
         Config c;
         c.macroName = mod->getSavedValue<std::string>("macro-name", c.macroName);
-        c.accurate = mod->getSavedValue<bool>("accurate", c.accurate);
         c.noclip = mod->getSavedValue<bool>("noclip", c.noclip);
         c.hitboxes = mod->getSavedValue<bool>("hitboxes", c.hitboxes);
         c.tpsBypass = mod->getSavedValue<bool>("tps-bypass", c.tpsBypass);
