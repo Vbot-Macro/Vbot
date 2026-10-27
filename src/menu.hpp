@@ -118,10 +118,10 @@ protected:
         addToggle(1, "TPS Bypass", cfg.tpsBypass, menu_selector(VbotMenu::onTpsToggle), {-150.f, 34.f});
         addToggle(1, "Speed hack", cfg.speedHack, menu_selector(VbotMenu::onSpeedToggle), {-150.f, -2.f});
 
-        addInput(1, "TPS (240+)", std::to_string(cfg.tps), 100.f, CommonFilter::Uint, {-95.f, -44.f},
+        addInput(1, "TPS (240-6000)", std::to_string(cfg.tps), 100.f, CommonFilter::Uint, {-95.f, -44.f},
                  [](std::string const& s) {
                      auto& c = vbot::Config::get();
-                     c.tps = vbot::util::parseIntClamped(s, vbot::NORMAL_TPS, 10000, c.tps);
+                     c.tps = vbot::util::parseIntClamped(s, vbot::NORMAL_TPS, vbot::MAX_TPS, c.tps);
                      c.save();
                  });
         addInput(1, "Speed (0.1-10)", fmt::format("{:g}", cfg.speed), 100.f, CommonFilter::Float, {95.f, -44.f},
