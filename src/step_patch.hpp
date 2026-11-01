@@ -1,3 +1,4 @@
+
 // step_patch.hpp - lets the TPS bypass change how many physics steps the game runs per frame.
 //
 // What the game does: inside GJBaseGameLayer::update it turns the frame time into a step count,
@@ -63,7 +64,7 @@ inline constexpr uintptr_t OFFSET = 0x89d9f8;
 //   fcmpe s9, s0
 //   b.le <the "one step" path>
 //   fcvtzs w0, s9               ; w0 = step count
-//   scvtf d0, w0                ; d0 = the count as a double
+//   scvtf d0, w0                 ; d0 = the count as a double
 //   str w0, [x29, #224]         ; the count is also kept on the stack
 inline constexpr std::array<uint32_t, 10> ORIGINAL = {
     0x1e62100a, 0x1e6a096a, 0x1e624140, 0x1e264009, 0x1e2e1000,
@@ -155,7 +156,7 @@ inline bool prepare() {
     g_state = State::Unavailable;
 #if defined(GEODE_IS_ANDROID64) || defined(GEODE_IS_WINDOWS)
     // Echo patches the TPS code the same way Vbot does, so the two can't run together.
-    if (auto* echo = geode::Loader::get()->getLoadedMod("decks.echo"); echo && echo->isCurrentlyLoaded()) {
+    if (auto* echo = geode::Loader::get()->getLoadedMod("decks.echo")) {
         g_why = "Conflict: decks.echo patches TPS the same way as Vbot, breaking it.";
         g_whyIsFullMessage = true;
         return false;
@@ -221,3 +222,4 @@ inline void setEnabled(bool on) {
 }
 
 } // namespace vbot::stepPatch
+   }
