@@ -11,6 +11,7 @@
 #include <array>
 #include <cmath>
 
+#include "frame_windows.hpp"
 #include "renderer.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
@@ -48,7 +49,8 @@ bool patchAvailable(bool wanted) {
     auto& cfg = vbot::Config::get();
     cfg.tpsUnavailable = true;
     std::string why = vbot::stepPatch::PLATFORM ? vbot::stepPatch::g_why : "it only works on Android 64-bit and Windows";
-    Notification::create("Vbot: TPS bypass unavailable, " + why, NotificationIcon::Warning, 4.f)->show();
+    std::string text = vbot::stepPatch::g_whyIsFullMessage ? why : "Vbot: TPS bypass unavailable, " + why;
+    Notification::create(text, NotificationIcon::Warning, 4.f)->show();
     return false;
 }
 
@@ -202,6 +204,7 @@ class $modify(VbScheduler, CCScheduler) {
             auto* scene = CCDirector::get()->getRunningScene();
             if (!(scene && scene->getChildByType<PauseLayer>(0))) dt = rawDt * cfg.effectiveSpeed();
         }
+        if (pl && vbot::fw::active()) dt = rawDt * vbot::fw::boost(); // the frame windows test runs fast
 
         bool patchMode = pl && patchAvailable(wantsBypass(cfg));
 
@@ -251,7 +254,8 @@ class $modify(VbCheatPlayLayer, PlayLayer) {
     // Noclip: ignore deaths. The anticheat spike is the one thing that still kills,
     // so the game's own cheat protection keeps working.
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        if (vbot::Config::get().noclip && object != m_anticheatSpike) return;
+        if (vbot::Config::get().noclip && !vbot::fw::active() && object != m_anticheatSpike) return;
+        vbot::fw::onDeath();
         vbot::Renderer::get().notePlayerDied();
         PlayLayer::destroyPlayer(player, object);
     }
@@ -260,6 +264,7 @@ class $modify(VbCheatPlayLayer, PlayLayer) {
     void postUpdate(float dt) {
         PlayLayer::postUpdate(dt);
         g_postUpdateRan = true;
+        vbot::fw::tick(this);
         if (g_skipDraw || !vbot::Config::get().hitboxes) return;
         drawGameHitboxes(this);
     }
@@ -272,6 +277,7 @@ class $modify(VbCheatPlayLayer, PlayLayer) {
 
     // Cheats on: treat the completion as a test run so it isn't saved.
     void levelComplete() {
+        if (vbot::fw::onComplete()) return; // the frame windows test: a pass, not a real completion
         vbot::Renderer::get().noteLevelComplete();
         if (vbot::Config::get().cheatsActive()) {
             m_isTestMode = true;
