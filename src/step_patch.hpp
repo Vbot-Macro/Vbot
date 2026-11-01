@@ -155,7 +155,7 @@ inline bool prepare() {
     g_state = State::Unavailable;
 #if defined(GEODE_IS_ANDROID64) || defined(GEODE_IS_WINDOWS)
     // Echo patches the TPS code the same way Vbot does, so the two can't run together.
-    if (auto* echo = geode::Loader::get()->getLoadedMod("decks.echo"); echo && echo->isEnabled()) {
+    if (auto* echo = geode::Loader::get()->getLoadedMod("decks.echo"); echo && echo->isCurrentlyLoaded()) {
         g_why = "Conflict: decks.echo patches TPS the same way as Vbot, breaking it.";
         g_whyIsFullMessage = true;
         return false;
