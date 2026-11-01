@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "actions.hpp"
+#include "frame_windows.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
 #include "util.hpp"
@@ -104,6 +105,8 @@ protected:
         addButton(0, "Record", menu_selector(VbotMenu::onRecord), {-95.f, 0.f});
         addButton(0, "Replay", menu_selector(VbotMenu::onReplay), {0.f, 0.f});
         addButton(0, "Stop", menu_selector(VbotMenu::onStop), {95.f, 0.f});
+
+        addButton(0, "Frame windows", menu_selector(VbotMenu::onFrameWindows), {0.f, -66.f}, .6f);
 
         m_status = addLabel(0, "", {0.f, -34.f}, .42f);
         addLabel(0, "Macros are saved in config/t1fy.vbot/Macros", {0.f, -100.f}, .3f);
@@ -283,7 +286,13 @@ protected:
         this->updateStatus(0.f);
     }
 
+    void onFrameWindows(CCObject*) {
+        vbot::fw::start();
+        if (vbot::fw::active()) this->onClose(nullptr); // close the menu so the level can run
+    }
+
     void onStop(CCObject*) {
+        vbot::fw::cancel("stopped");
         vbot::stopAll();
         this->updateStatus(0.f);
     }
