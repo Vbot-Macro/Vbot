@@ -1,4 +1,3 @@
-
 // step_patch.hpp - lets the TPS bypass change how many physics steps the game runs per frame.
 //
 // What the game does: inside GJBaseGameLayer::update it turns the frame time into a step count,
@@ -222,4 +221,3 @@ inline void setEnabled(bool on) {
 }
 
 } // namespace vbot::stepPatch
-   }
