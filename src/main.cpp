@@ -7,6 +7,7 @@
 #include <Geode/modify/PlayLayer.hpp>
 
 #include "actions.hpp"
+#include "frame_windows.hpp"
 #include "macro.hpp"
 #include "renderer.hpp"
 #include "settings.hpp"
@@ -98,6 +99,8 @@ class $modify(VbBaseGameLayer, GJBaseGameLayer) {
             }
         }
 
+        vbot::fw::onStep(s.frame);
+
         if (s.mode == vbot::Mode::Replaying) {
             // Snapshots first, so the inputs below act on the recorded state.
             auto const& snaps = s.macro.snaps;
@@ -163,6 +166,7 @@ class $modify(VbPlayLayer, PlayLayer) {
                 s.macro.snaps.clear();
                 s.step.frame = 0xFFFFFFFFu;
             }
+            vbot::fw::onReset(); // the frame windows test loads its next attempt here
             return;
         }
 
@@ -204,6 +208,12 @@ class $modify(VbPlayLayer, PlayLayer) {
         s.nextSnap = static_cast<size_t>(sit - snaps.begin());
     }
 
+    // The frame window counter is drawn on the level's HUD.
+    void setupHasCompleted() {
+        PlayLayer::setupHasCompleted();
+        vbot::fw::showOverlay();
+    }
+
     // Turning practice mode off while recording saves the macro, since recording needs practice mode.
     void togglePracticeMode(bool practiceMode) {
         PlayLayer::togglePracticeMode(practiceMode);
@@ -214,6 +224,7 @@ class $modify(VbPlayLayer, PlayLayer) {
 
     // Leaving the level while recording saves the macro too.
     void onQuit() {
+        vbot::fw::cancel("you left the level");
         if (vbot::State::get().mode == vbot::Mode::Recording) vbot::toggleRecord();
         PlayLayer::onQuit();
     }
