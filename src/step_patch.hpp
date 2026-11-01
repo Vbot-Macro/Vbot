@@ -48,6 +48,7 @@ inline State g_state = State::Untried;
 inline geode::Patch* g_patch = nullptr;
 inline bool g_on = false;
 inline std::string g_why; // set when the patch can't be used
+inline bool g_whyIsFullMessage = false; // g_why is already the complete toast text
 
 #ifdef GEODE_IS_ANDROID64
 // Where the count math sits in GJBaseGameLayer::update (offset into the game library, 2.2081).
@@ -103,6 +104,39 @@ inline constexpr std::array<uint8_t, 18> WIN_REPLACEMENT = {
 };
 #endif
 
+#ifdef GEODE_IS_ANDROID64
+// Find the count math. Normally it is exactly at OFFSET. If the library is a slightly different build
+// of the same code, the instructions can sit a little further along, so look nearby for the same ones.
+// Every word has to match except the b.le (its jump distance is different in every build, but it must
+// still be a "branch if less or equal"), and there has to be exactly one match.
+inline uintptr_t findCountMath() {
+    uintptr_t base = geode::base::get();
+    auto* at = reinterpret_cast<const uint32_t*>(base + OFFSET);
+    if (std::memcmp(at, ORIGINAL.data(), sizeof(ORIGINAL)) == 0) return base + OFFSET;
+
+    auto matches = [](const uint32_t* p) {
+        for (size_t i = 0; i < ORIGINAL.size(); i++) {
+            if (i == 6) {
+                if ((p[i] & 0xFF00001Fu) != 0x5400000Du) return false; // b.le
+            } else if (p[i] != ORIGINAL[i]) {
+                return false;
+            }
+        }
+        return true;
+    };
+    constexpr intptr_t RANGE = 0x10000 / 4; // 64 KB either side
+    uintptr_t found = 0;
+    int count = 0;
+    for (intptr_t i = -RANGE; i <= RANGE; i++) {
+        if (matches(at + i)) {
+            found = reinterpret_cast<uintptr_t>(at + i);
+            count++;
+        }
+    }
+    return count == 1 ? found : 0;
+}
+#endif
+
 // Another mod patching the same bytes (Silicate does) would fight with us over them.
 inline geode::Mod* conflictingMod(uintptr_t address) {
     for (auto* mod : geode::Loader::get()->getAllMods()) {
@@ -120,29 +154,48 @@ inline bool prepare() {
     if (g_state == State::Unavailable) return false;
     g_state = State::Unavailable;
 #if defined(GEODE_IS_ANDROID64) || defined(GEODE_IS_WINDOWS)
+    // Echo patches the TPS code the same way Vbot does, so the two can't run together.
+    if (auto* echo = geode::Loader::get()->getLoadedMod("decks.echo"); echo && echo->isEnabled()) {
+        g_why = "Conflict: decks.echo patches TPS the same way as Vbot, breaking it.";
+        g_whyIsFullMessage = true;
+        return false;
+    }
+
     uintptr_t where = geode::base::get() + OFFSET;
-    auto* address = reinterpret_cast<uint8_t*>(where);
     auto* ptr = &g_count;
     static_assert(sizeof(ptr) == 8, "the patch holds a 64-bit address");
 
-    std::vector<uint8_t> bytes;
-#ifdef GEODE_IS_ANDROID64
-    if (std::memcmp(address, ORIGINAL.data(), sizeof(ORIGINAL)) != 0) {
-        g_why = "the game's code is different from 2.2081";
+    // Another mod that already changed this spot (Echo and Silicate do) is the most likely reason the
+    // original instructions aren't there, so check for that first.
+    if (auto* other = conflictingMod(where)) {
+        g_why = "the mod " + other->getName() + " already changed the same part of the game, turn it off";
         return false;
     }
+
+    std::vector<uint8_t> bytes;
+#ifdef GEODE_IS_ANDROID64
+    where = findCountMath();
+    if (where == 0) {
+        auto* at = reinterpret_cast<const uint32_t*>(geode::base::get() + OFFSET);
+        std::string found;
+        for (size_t i = 0; i < ORIGINAL.size(); i++) found += fmt::format("{:08x} ", at[i]);
+        geode::log::warn("Vbot step patch: expected the count math at +{:#x}, found: {}", OFFSET, found);
+        g_why = "the game's code is different from 2.2081 (see the Geode log)";
+        return false;
+    }
+    if (where != geode::base::get() + OFFSET) {
+        geode::log::info("Vbot step patch: count math found at +{:#x} instead of +{:#x}", where - geode::base::get(), OFFSET);
+    }
+    auto* address = reinterpret_cast<uint8_t*>(where);
     bytes.resize(sizeof(REPLACEMENT) + sizeof(ptr));
     std::memcpy(bytes.data(), REPLACEMENT.data(), sizeof(REPLACEMENT));
     std::memcpy(bytes.data() + sizeof(REPLACEMENT), &ptr, sizeof(ptr));
 #else
+    auto* address = reinterpret_cast<uint8_t*>(where);
     bytes.assign(WIN_REPLACEMENT.begin(), WIN_REPLACEMENT.end());
     std::memcpy(bytes.data() + 2, &ptr, sizeof(ptr));
 #endif
 
-    if (auto* other = conflictingMod(where)) {
-        g_why = "the mod " + other->getName() + " patches the same place, turn it off";
-        return false;
-    }
     auto res = geode::Mod::get()->patch(address, bytes);
     if (!res) {
         g_why = "could not write the patch";
