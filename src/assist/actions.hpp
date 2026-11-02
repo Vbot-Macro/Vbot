@@ -8,10 +8,10 @@
 
 #include <algorithm>
 
-#include "macro.hpp"
-#include "render_guard.hpp"
-#include "renderer.hpp"
-#include "settings.hpp"
+#include "../replay/macro.hpp"
+#include "../render/render_guard.hpp"
+#include "../render/renderer.hpp"
+#include "../settings/settings.hpp"
 #include "util.hpp"
 
 namespace vbot {
