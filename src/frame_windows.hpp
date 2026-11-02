@@ -290,6 +290,7 @@ struct Session {
     bool failed = false;      // this attempt died
     bool resetCalled = false; // we already asked for the next restart
     uint32_t ticks = 0;       // frames since the last restart, to notice a stuck test
+    uint32_t steps = 0;       // physics steps since the last restart
     std::unique_ptr<windows::Planner> planner;
     windows::Trial trial;
     vb::Macro saved;          // what was in State::macro before the test
@@ -345,7 +346,8 @@ inline void cancel(char const* why) {
 }
 
 // The test stopped by itself (it couldn't start, or something went wrong). This is the only toast it shows.
-inline void autoDisable() {
+inline void autoDisable(char const* why) {
+    geode::log::warn("Vbot frame windows: disabled itself: {}", why);
     auto& se = Session::get();
     if (se.active) {
         se.active = false;
@@ -364,6 +366,7 @@ inline void finish() {
     restoreMacro();
 
     if (baselineFailed) {
+        geode::log::warn("Vbot frame windows: the macro dies when replayed without corrections");
         toast("The Frame Window option has been automatically disabled.", geode::NotificationIcon::Warning);
         return;
     }
@@ -379,13 +382,13 @@ inline void start() {
     auto& cfg = Config::get();
 
     auto* pl = PlayLayer::get();
-    if (!pl) { autoDisable(); return; }
+    if (!pl) { autoDisable("no level is open"); return; }
     if (pl->m_isPracticeMode) {
-        autoDisable();
+        autoDisable("practice mode is on");
         return;
     }
-    if (s.mode == Mode::Recording) { autoDisable(); return; }
-    if (Renderer::get().rendering()) { autoDisable(); return; }
+    if (s.mode == Mode::Recording) { autoDisable("recording is on"); return; }
+    if (Renderer::get().rendering()) { autoDisable("rendering is on"); return; }
     if (se.active) cancel("restarted");
 
     // Remember what was loaded, then load the chosen macro.
@@ -393,13 +396,13 @@ inline void start() {
     Mode beforeMode = s.mode;
     if (!armReplay(true)) { s.macro = std::move(before); s.mode = beforeMode; return; }
     if (static_cast<int>(s.macro.fps) != cfg.effectiveTps()) {
-        autoDisable();
+        autoDisable("the macro's TPS doesn't match the current TPS");
         s.macro = std::move(before);
         s.mode = beforeMode;
         return;
     }
     if (s.macro.inputs.empty()) {
-        autoDisable();
+        autoDisable("the macro has no inputs");
         s.macro = std::move(before);
         s.mode = beforeMode;
         return;
@@ -412,11 +415,15 @@ inline void start() {
     se.active = true;
     se.started = false;
     se.succeeded = se.failed = se.resetCalled = false;
-    // The level is paused behind the menu; close the pause screen so the test can run.
-    if (auto* scene = cocos2d::CCDirector::get()->getRunningScene()) {
-        if (auto* pause = scene->getChildByType<PauseLayer>(0)) pause->onResume(nullptr);
-    }
-    pl->resetLevelFromStart();
+    se.ticks = 0;
+    // The level is paused behind the menu. Restart it with the pause screen's own "restart from the
+    // start" button, which is the exact code path the game uses (resume, close the pause screen,
+    // restart and start moving). Doing those steps by hand left the player stuck on the first frame.
+    geode::log::info("Vbot frame windows: starting, {} clicks", se.planner->clickCount());
+    PauseLayer* pause = nullptr;
+    if (auto* scene = cocos2d::CCDirector::get()->getRunningScene()) pause = scene->getChildByType<PauseLayer>(0);
+    if (pause) pause->onRestartFull(nullptr);
+    else pl->resumeAndRestart(true);
 }
 
 // Every restart of the level. Reports the last attempt and loads the next one.
@@ -425,14 +432,23 @@ inline void onReset() {
     if (!se.active) return;
     auto& s = State::get();
 
-    if (se.started) se.planner->report(se.succeeded && !se.failed);
+    // A restart with no physics step since the last one isn't a real attempt (the game can restart
+    // twice in a row): load the same attempt again instead of counting it as a failure.
+    bool duplicate = se.started && se.steps == 0 && !se.failed && !se.succeeded;
+    if (se.started && !duplicate) se.planner->report(se.succeeded && !se.failed);
     se.started = true;
+    se.steps = 0;
     se.succeeded = se.failed = se.resetCalled = false;
     se.ticks = 0;
 
-    windows::Trial t;
-    if (!se.planner->next(t)) { finish(); return; }
-    se.trial = std::move(t);
+    if (duplicate) {
+        geode::log::debug("Vbot frame windows: ignored a second restart in a row");
+    } else {
+        windows::Trial t;
+        if (!se.planner->next(t)) { finish(); return; }
+        se.trial = std::move(t);
+    }
+    geode::log::debug("Vbot frame windows: attempt for click {} of {}, ends at frame {}", se.planner->clickIndex() + 1, se.planner->clickCount(), se.trial.endFrame);
 
     s.macro.fps = static_cast<uint32_t>(Config::get().effectiveTps());
     s.macro.inputs = se.trial.inputs;
@@ -446,7 +462,9 @@ inline void onReset() {
 // Before each physics step.
 inline void onStep(uint32_t frame) {
     auto& se = Session::get();
-    if (!se.active || !se.started || se.succeeded || se.failed) return;
+    if (!se.active || !se.started) return;
+    se.steps++;
+    if (se.succeeded || se.failed) return;
     if (frame >= se.trial.endFrame) se.succeeded = true;
 }
 
@@ -467,7 +485,7 @@ inline bool onComplete() {
 inline void tick(PlayLayer* pl) {
     auto& se = Session::get();
     // Stuck: an attempt that never ends or never restarts (a bug, or the level was left in a odd state).
-    if (se.active && se.started && ++se.ticks > 6000) { autoDisable(); return; }
+    if (se.active && se.started && ++se.ticks > 6000) { autoDisable("an attempt got stuck"); return; }
     if (!se.active || !se.started || !se.succeeded || se.failed || se.resetCalled) return;
     se.resetCalled = true;
     pl->resetLevelFromStart();
