@@ -6,12 +6,12 @@
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 
-#include "actions.hpp"
-#include "frame_windows.hpp"
-#include "macro.hpp"
-#include "renderer.hpp"
-#include "settings.hpp"
-#include "stats.hpp"
+#include "assist/actions.hpp"
+#include "hooks/frame_windows.hpp"
+#include "replay/macro.hpp"
+#include "render/renderer.hpp"
+#include "settings/settings.hpp"
+#include "hooks/stats.hpp"
 
 using namespace geode::prelude;
 

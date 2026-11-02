@@ -1,6 +1,6 @@
 // macro.hpp - shared recorder/replayer state for Vbot.
 #pragma once
-#include "vb.hpp"
+#include "../bot/vb.hpp"
 #include <cstddef>
 #include <cstdint>
 

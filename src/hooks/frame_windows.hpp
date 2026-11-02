@@ -20,10 +20,10 @@
 #include <utility>
 #include <vector>
 
-#include "actions.hpp"
-#include "macro.hpp"
-#include "settings.hpp"
-#include "vb.hpp"
+#include "../assist/actions.hpp"
+#include "../replay/macro.hpp"
+#include "../settings/settings.hpp"
+#include "../bot/vb.hpp"
 
 // ======================================================================================
 // 1. rows and logic
