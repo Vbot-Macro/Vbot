@@ -12,6 +12,7 @@
 #include <cmath>
 
 #include "frame_windows.hpp"
+#include "hitboxes.hpp"
 #include "renderer.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
@@ -245,6 +246,22 @@ class $modify(VbScheduler, CCScheduler) {
             stats.tick(rawDt, g_frameSteps);
             g_frameSteps = 0;
         }
+    }
+};
+
+// --- hitbox drawing ----------------------------------------------------------------------------
+// With the Hitboxes toggle on, Vbot draws the hitboxes itself (hitboxes.hpp) instead of the game's own
+// drawing, so the colours can be changed. With it off, the game's drawing runs as it always does.
+
+class $modify(VbDebugDraw, GJBaseGameLayer) {
+    void updateDebugDraw() {
+        auto* pl = PlayLayer::get();
+        bool inLevel = pl && static_cast<GJBaseGameLayer*>(pl) == static_cast<GJBaseGameLayer*>(this);
+        if (!inLevel || !vbot::Config::get().hitboxes || !m_debugDrawNode) {
+            GJBaseGameLayer::updateDebugDraw();
+            return;
+        }
+        vbot::hb::draw(this, m_debugDrawNode);
     }
 };
 
