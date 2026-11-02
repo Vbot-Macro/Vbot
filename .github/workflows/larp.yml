@@ -1,0 +1,30 @@
+name: Organize Vbots Source
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/**"
+
+permissions:
+  contents: write
+
+jobs:
+  organize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create source directories
+        run: |
+          mkdir -p \
+            src/assist \
+            src/bot \
+            src/hooks \
+            src/physics \
+            src/render \
+            src/replay \
+            src/settings \
+            src/ui
