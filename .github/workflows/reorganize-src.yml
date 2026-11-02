@@ -1,145 +1,136 @@
 name: Reorganize src
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
-contents: write
-pull-requests: write
+  contents: write
+  pull-requests: write
 
 jobs:
-reorganize:
-runs-on: ubuntu-latest
+  reorganize:
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
-    with:
-      fetch-depth: 0
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  - name: Move files and update includes
-    shell: bash
-    run: |
-      python3 - <<'PY'
-      from pathlib import Path
-      import os
-      import re
+      - name: Move files and update includes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import re
 
-      src = Path("src")
+          src = Path("src")
 
-      files = {
-          "actions.hpp": "assist/actions.hpp",
-          "util.hpp": "assist/util.hpp",
-          "vb.hpp": "bot/vb.hpp",
-          "cheats.cpp": "hooks/cheats.cpp",
-          "frame_windows.hpp": "hooks/frame_windows.hpp",
-          "pause_hooks.cpp": "hooks/pause_hooks.cpp",
-          "stats.hpp": "hooks/stats.hpp",
-          "hitboxes.hpp": "physics/hitboxes.hpp",
-          "step_patch.hpp": "physics/step_patch.hpp",
-          "events.hpp": "render/events.hpp",
-          "export.hpp": "render/export.hpp",
-          "render_guard.hpp": "render/render_guard.hpp",
-          "renderer.hpp": "render/renderer.hpp",
-          "macro.hpp": "replay/macro.hpp",
-          "render_settings.hpp": "settings/render_settings.hpp",
-          "settings.hpp": "settings/settings.hpp",
-          "macro_button.hpp": "ui/macro_button.hpp",
-          "menu.hpp": "ui/menu.hpp",
-      }
+          files = {
+              "actions.hpp": "assist/actions.hpp",
+              "util.hpp": "assist/util.hpp",
+              "vb.hpp": "bot/vb.hpp",
+              "cheats.cpp": "hooks/cheats.cpp",
+              "frame_windows.hpp": "hooks/frame_windows.hpp",
+              "pause_hooks.cpp": "hooks/pause_hooks.cpp",
+              "stats.hpp": "hooks/stats.hpp",
+              "hitboxes.hpp": "physics/hitboxes.hpp",
+              "step_patch.hpp": "physics/step_patch.hpp",
+              "events.hpp": "render/events.hpp",
+              "export.hpp": "render/export.hpp",
+              "render_guard.hpp": "render/render_guard.hpp",
+              "renderer.hpp": "render/renderer.hpp",
+              "macro.hpp": "replay/macro.hpp",
+              "render_settings.hpp": "settings/render_settings.hpp",
+              "settings.hpp": "settings/settings.hpp",
+              "macro_button.hpp": "ui/macro_button.hpp",
+              "menu.hpp": "ui/menu.hpp",
+          }
 
-      # Move files without overwriting existing files.
-      for old_name, new_name in files.items():
-          old = src / old_name
-          new = src / new_name
+          for old_name, new_name in files.items():
+              old = src / old_name
+              new = src / new_name
 
-          if old.exists() and new.exists():
-              raise SystemExit(
-                  f"Both {old} and {new} exist. Resolve this duplicate first."
-              )
+              if old.exists() and new.exists():
+                  raise SystemExit(f"Both {old} and {new} exist.")
 
-          if old.exists():
-              new.parent.mkdir(parents=True, exist_ok=True)
-              old.rename(new)
-          elif not new.exists():
-              raise SystemExit(f"Missing file: {old} and {new}")
+              if old.exists():
+                  new.parent.mkdir(parents=True, exist_ok=True)
+                  old.rename(new)
+              elif not new.exists():
+                  raise SystemExit(f"Missing file: {old} and {new}")
 
-      # Build a map of original filenames to their new locations.
-      destinations = {
-          name: src / target
-          for name, target in files.items()
-      }
+          destinations = {
+              name: src / target
+              for name, target in files.items()
+          }
 
-      include_pattern = re.compile(
-          r'(^\s*#\s*include\s*")([^"]+)(")',
-          re.MULTILINE
-      )
-
-      # Rewrite quoted includes relative to the including file.
-      for path in src.rglob("*"):
-          if not path.is_file():
-              continue
-
-          if path.suffix not in {
-              ".h", ".hpp", ".c", ".cc", ".cpp", ".cxx"
-          }:
-              continue
-
-          original = path.read_text(encoding="utf-8")
-
-          def replace_include(match):
-              include = match.group(2)
-              target = destinations.get(Path(include).name)
-
-              if target is None:
-                  return match.group(0)
-
-              relative = os.path.relpath(
-                  target, path.parent
-              ).replace(os.sep, "/")
-
-              return match.group(1) + relative + match.group(3)
-
-          updated = include_pattern.sub(
-              replace_include, original
+          include_pattern = re.compile(
+              r'(^\s*#\s*include\s*")([^"]+)(")',
+              re.MULTILINE
           )
 
-          if updated != original:
-              path.write_text(
-                  updated, encoding="utf-8", newline=""
+          for path in src.rglob("*"):
+              if not path.is_file() or path.suffix not in {
+                  ".h", ".hpp", ".c", ".cc", ".cpp", ".cxx"
+              }:
+                  continue
+
+              original = path.read_text(encoding="utf-8")
+
+              def replace_include(match):
+                  include = match.group(2)
+                  target = destinations.get(Path(include).name)
+
+                  if target is None:
+                      return match.group(0)
+
+                  relative = os.path.relpath(
+                      target, path.parent
+                  ).replace(os.sep, "/")
+
+                  return match.group(1) + relative + match.group(3)
+
+              updated = include_pattern.sub(
+                  replace_include, original
               )
 
-      # Ensure main.cpp remains directly inside src.
-      if not (src / "main.cpp").is_file():
-          raise SystemExit("src/main.cpp is missing!")
+              if updated != original:
+                  path.write_text(
+                      updated, encoding="utf-8", newline=""
+                  )
 
-      print("Reorganization completed successfully.")
-      PY
+          if not (src / "main.cpp").is_file():
+              raise SystemExit("src/main.cpp is missing!")
 
-  - name: Create pull request
-    env:
-      GH_TOKEN: ${{ github.token }}
-      BASE_REF: ${{ github.event.repository.default_branch }}
-    shell: bash
-    run: |
-      git config user.name "github-actions[bot]"
-      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          print("Reorganization completed successfully.")
+          PY
 
-      branch="automation/src-reorganization-${GITHUB_RUN_ID}"
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ github.event.repository.default_branch }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      git switch -c "$branch"
-      git add src
+          branch="automation/src-reorganization-${GITHUB_RUN_ID}"
 
-      if git diff --cached --quiet; then
-        echo "No changes required."
-        exit 0
-      fi
+          git switch -c "$branch"
+          git add src
 
-      git commit -m "Reorganize src into feature folders"
-      git push --set-upstream origin "$branch"
+          if git diff --cached --quiet; then
+            echo "No changes required."
+            exit 0
+          fi
 
-      gh pr create \
-        --base "$BASE_REF" \
-        --head "$branch" \
-        --title "Reorganize src folders and update includes" \
-        --body "Automatically reorganizes src files into the agreed folders and updates quoted local C++ includes. Keeps src/main.cpp in place."
+          git commit -m "Reorganize src into feature folders"
+          git push --set-upstream origin "$branch"
+
+          gh pr create \
+            --base "$BASE_REF" \
+            --head "$branch" \
+            --title "Reorganize src folders and update includes" \
+            --body "Automatically reorganizes src files into the agreed folders and updates quoted local C++ includes. Keeps src/main.cpp in place."
