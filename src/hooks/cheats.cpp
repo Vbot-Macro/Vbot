@@ -12,11 +12,11 @@
 #include <cmath>
 
 #include "frame_windows.hpp"
-#include "hitboxes.hpp"
-#include "renderer.hpp"
-#include "settings.hpp"
+#include "../physics/hitboxes.hpp"
+#include "../render/renderer.hpp"
+#include "../settings/settings.hpp"
 #include "stats.hpp"
-#include "step_patch.hpp"
+#include "../physics/step_patch.hpp"
 
 using namespace geode::prelude;
 

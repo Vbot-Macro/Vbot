@@ -9,12 +9,12 @@
 
 #include <vector>
 
-#include "actions.hpp"
-#include "frame_windows.hpp"
-#include "hitboxes.hpp"
-#include "settings.hpp"
-#include "stats.hpp"
-#include "util.hpp"
+#include "../assist/actions.hpp"
+#include "../hooks/frame_windows.hpp"
+#include "../physics/hitboxes.hpp"
+#include "../settings/settings.hpp"
+#include "../hooks/stats.hpp"
+#include "../assist/util.hpp"
 
 using namespace geode::prelude;
 
