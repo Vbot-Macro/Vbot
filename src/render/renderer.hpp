@@ -20,10 +20,10 @@
 #include <vector>
 
 #include "events.hpp"
-#include "macro.hpp"
+#include "../replay/macro.hpp"
 #include "render_guard.hpp"
-#include "settings.hpp"
-#include "util.hpp"
+#include "../settings/settings.hpp"
+#include "../assist/util.hpp"
 
 namespace vbot {
 
