@@ -1,7 +1,9 @@
 # v1.0.4-beta
-- Added Internal Renderer (With Audio).
-- Finished Hitbox Work For Now.
-- Fixed Compatibility Issuses On TPS Bypass.
+- Added rendering support through the FFmpeg API mod.
+- Added a Tab keybind for Windows.
+- Fixed occasional macro offset issues.
+
+**Thank you for waiting 21 days for this update!**
 # v1.0.3-beta
 - Fixed various bugs and issues.
 - Improved mod stability.
