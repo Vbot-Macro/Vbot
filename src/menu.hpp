@@ -3,6 +3,7 @@
 #pragma once
 #include <algorithm>
 #include <Geode/Geode.hpp>
+#include <Geode/ui/ColorPickPopup.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/TextInput.hpp>
 
@@ -10,11 +11,118 @@
 
 #include "actions.hpp"
 #include "frame_windows.hpp"
+#include "hitboxes.hpp"
 #include "settings.hpp"
 #include "stats.hpp"
 #include "util.hpp"
 
 using namespace geode::prelude;
+
+// The "+" next to Hitboxes: the hitbox options and their colours.
+class VbHitboxPopup : public Popup {
+protected:
+    CCLayerColor* m_swatch[4] = {};
+
+    // The four colour rows: what they are called and which colour they change.
+    static constexpr char const* COLOR_NAMES[4] = {"Hazards & player", "Orbs", "Blocks & player block", "Passable"};
+
+    static cocos2d::ccColor3B& colorFor(int i) {
+        auto& st = vbot::hb::Settings::get();
+        switch (i) {
+            case 0: return st.hazard;
+            case 1: return st.orb;
+            case 2: return st.block;
+            default: return st.passable;
+        }
+    }
+
+    static bool& toggleFor(int i) {
+        auto& st = vbot::hb::Settings::get();
+        switch (i) {
+            case 0: return st.fill;
+            case 1: return st.playerRotation;
+            case 2: return st.player;
+            default: return st.showActivated;
+        }
+    }
+
+    bool init() {
+        if (!Popup::init(320.f, 270.f)) return false;
+        this->setTitle("Hitboxes");
+
+        char const* toggleNames[4] = {"Fill Hitboxes", "Player Rotation", "Player", "Show Activated Orbs"};
+        for (int i = 0; i < 4; i++) {
+            float y = 82.f - i * 26.f;
+            auto* toggle = CCMenuItemToggler::createWithStandardSprites(this, menu_selector(VbHitboxPopup::onToggle), .65f);
+            toggle->m_notClickable = true; // flipped in the callback
+            toggle->setTag(i);
+            toggle->toggle(toggleFor(i));
+            m_buttonMenu->addChildAtPosition(toggle, Anchor::Center, ccp(-130.f, y));
+
+            auto* label = CCLabelBMFont::create(toggleNames[i], "bigFont.fnt");
+            label->setScale(.45f);
+            label->setAnchorPoint({0.f, .5f});
+            m_mainLayer->addChildAtPosition(label, Anchor::Center, ccp(-108.f, y));
+        }
+
+        auto* header = CCLabelBMFont::create("Colours", "goldFont.fnt");
+        header->setScale(.55f);
+        m_mainLayer->addChildAtPosition(header, Anchor::Center, ccp(0.f, -28.f));
+
+        for (int i = 0; i < 4; i++) {
+            float y = -52.f - i * 26.f;
+            auto* label = CCLabelBMFont::create(COLOR_NAMES[i], "bigFont.fnt");
+            label->setScale(.4f);
+            label->setAnchorPoint({0.f, .5f});
+            m_mainLayer->addChildAtPosition(label, Anchor::Center, ccp(-140.f, y));
+
+            auto c = colorFor(i);
+            m_swatch[i] = CCLayerColor::create({c.r, c.g, c.b, 255}, 18.f, 18.f);
+            m_swatch[i]->ignoreAnchorPointForPosition(false);
+            m_swatch[i]->setAnchorPoint({.5f, .5f});
+            m_mainLayer->addChildAtPosition(m_swatch[i], Anchor::Center, ccp(75.f, y));
+
+            auto* spr = ButtonSprite::create("Change", "goldFont.fnt", "GJ_button_01.png", .8f);
+            spr->setScale(.55f);
+            auto* btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(VbHitboxPopup::onColor));
+            btn->setTag(i);
+            m_buttonMenu->addChildAtPosition(btn, Anchor::Center, ccp(120.f, y));
+        }
+        return true;
+    }
+
+    void onToggle(CCObject* sender) {
+        auto* toggle = static_cast<CCMenuItemToggler*>(sender);
+        bool value = !toggle->isToggled();
+        toggle->toggle(value);
+        toggleFor(toggle->getTag()) = value;
+        vbot::hb::Settings::get().save();
+    }
+
+    void onColor(CCObject* sender) {
+        int i = static_cast<CCNode*>(sender)->getTag();
+        auto* picker = geode::ColorPickPopup::create(colorFor(i));
+        if (!picker) return;
+        Ref<VbHitboxPopup> self = this;
+        picker->setCallback([self, i](ccColor4B const& c) {
+            colorFor(i) = {c.r, c.g, c.b};
+            if (self->m_swatch[i]) self->m_swatch[i]->setColor({c.r, c.g, c.b});
+            vbot::hb::Settings::get().save();
+        });
+        picker->show();
+    }
+
+public:
+    static VbHitboxPopup* create() {
+        auto* ret = new VbHitboxPopup();
+        if (ret->init()) {
+            ret->autorelease();
+            return ret;
+        }
+        delete ret;
+        return nullptr;
+    }
+};
 
 class VbotMenu : public Popup {
 protected:
@@ -118,6 +226,7 @@ protected:
         // Two columns of switches. Labels are short so they stay inside the popup.
         addToggle(1, "Noclip", cfg.noclip, menu_selector(VbotMenu::onNoclip), {-150.f, 70.f});
         addToggle(1, "Hitboxes", cfg.hitboxes, menu_selector(VbotMenu::onHitboxes), {10.f, 70.f});
+        addButton(1, "+", menu_selector(VbotMenu::onHitboxOptions), {118.f, 70.f}, .5f);
         addToggle(1, "TPS Bypass", cfg.tpsBypass, menu_selector(VbotMenu::onTpsToggle), {-150.f, 34.f});
         addToggle(1, "Speed hack", cfg.speedHack, menu_selector(VbotMenu::onSpeedToggle), {-150.f, -2.f});
 
@@ -350,6 +459,10 @@ protected:
             pl->updateDebugDrawSettings();
             if (!pl->m_isDebugDrawEnabled && pl->m_debugDrawNode) pl->m_debugDrawNode->clear();
         }
+    }
+
+    void onHitboxOptions(CCObject*) {
+        if (auto* popup = VbHitboxPopup::create()) popup->show();
     }
 
     void onSpeedToggle(CCObject* sender) {
