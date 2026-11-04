@@ -16,12 +16,13 @@
 #include <Geode/ui/TextInput.hpp>
 
 #include <vector>
+
 #include "../hooks/frame_windows.hpp"
-#include "../assist/hitboxes.hpp"
-#include "../bot/actions.hpp"
-#include "../bot/stats.hpp"
+#include "../physics/hitboxes.hpp"
+#include "../assist/actions.hpp"
+#include "../hooks/stats.hpp"
 #include "../settings/settings.hpp"
-#include "../util/util.hpp"
+#include "../assist/util.hpp"
 #include "themes/themes.hpp"
 
 using namespace geode::prelude;
