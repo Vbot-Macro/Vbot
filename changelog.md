@@ -1,3 +1,8 @@
+# v1.0.5-beta
+- Reworked the menu, now built with ImGui: a tab list on the left, settings in panels, and a status line at the bottom.
+- Added menu themes (Midnight, Ocean, Violet, Ember, Halloween, Forest) and a custom accent colour.
+- Redesigned hitboxes with configurable colours and options (Fill Hitboxes, Player Rotation, Player, Show Activated Orbs).
+- Reworked frame windows.
 # v1.0.4-beta
 - Added rendering support through the FFmpeg API mod.
 - Added a Tab keybind for Windows.
