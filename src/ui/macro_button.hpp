@@ -94,7 +94,7 @@ public:
             Mod::get()->setSavedValue<float>("macro-button-x", this->getPositionX());
             Mod::get()->setSavedValue<float>("macro-button-y", this->getPositionY());
         } else {
-            if (auto* menu = VbotMenu::create()) menu->show();
+            VbotMenu::open();
         }
         m_dragging = false;
     }
