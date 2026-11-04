@@ -6,6 +6,7 @@
 #pragma once
 #include <Geode/Geode.hpp>
 
+#include "../assist/actions.hpp"
 #include "menu.hpp"
 
 using namespace geode::prelude;
