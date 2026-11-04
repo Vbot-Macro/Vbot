@@ -19,8 +19,8 @@ struct Config {
     bool tpsBypass = false;
     int tps = NORMAL_TPS;
     bool speedHack = false;
-    float speed = 1.0f;       // game speed multiplier while the speed hack is on
-    // Not saved: set when the TPS bypass can't run on this device/game version. It then counts as off.
+    float speed = 1.0f;
+    // Not saved: set when the TPS bypass can't run on this device/game version.
     bool tpsUnavailable = false;
 
     // renderer
@@ -30,7 +30,11 @@ struct Config {
     int bitrateMbps = 30;
     std::string codec = "libx264";
     std::string renderName = "render";
-    bool renderAudio = true; // add the level's song to the video
+    bool renderAudio = true;
+
+    // UI themes
+    int theme = 0;
+    int accentOverride = -1; // -1 = default theme accent
 
     static Config& get() {
         static Config c = load();
@@ -54,13 +58,19 @@ struct Config {
 
     void save() const {
         auto* mod = geode::Mod::get();
+
+        // macros
         mod->setSavedValue<std::string>("macro-name", macroName);
+
+        // cheats
         mod->setSavedValue<bool>("noclip", noclip);
         mod->setSavedValue<bool>("hitboxes", hitboxes);
         mod->setSavedValue<bool>("tps-bypass", tpsBypass);
         mod->setSavedValue<int>("tps", tps);
         mod->setSavedValue<bool>("speed-hack", speedHack);
         mod->setSavedValue<float>("speed", speed);
+
+        // renderer
         mod->setSavedValue<int>("render-width", renderWidth);
         mod->setSavedValue<int>("render-height", renderHeight);
         mod->setSavedValue<int>("render-fps", renderFps);
@@ -68,19 +78,33 @@ struct Config {
         mod->setSavedValue<std::string>("render-codec", codec);
         mod->setSavedValue<std::string>("render-name", renderName);
         mod->setSavedValue<bool>("render-audio", renderAudio);
+
+        // UI themes
+        mod->setSavedValue<int>("theme", theme);
+        mod->setSavedValue<int>("accent-override", accentOverride);
     }
 
 private:
     static Config load() {
         auto* mod = geode::Mod::get();
         Config c;
+
+        // macros
         c.macroName = mod->getSavedValue<std::string>("macro-name", c.macroName);
+
+        // cheats
         c.noclip = mod->getSavedValue<bool>("noclip", c.noclip);
         c.hitboxes = mod->getSavedValue<bool>("hitboxes", c.hitboxes);
         c.tpsBypass = mod->getSavedValue<bool>("tps-bypass", c.tpsBypass);
-        c.tps = std::clamp(mod->getSavedValue<int>("tps", c.tps), NORMAL_TPS, MAX_TPS);
+        c.tps = std::clamp(
+            mod->getSavedValue<int>("tps", c.tps),
+            NORMAL_TPS,
+            MAX_TPS
+        );
         c.speedHack = mod->getSavedValue<bool>("speed-hack", c.speedHack);
         c.speed = mod->getSavedValue<float>("speed", c.speed);
+
+        // renderer
         c.renderWidth = mod->getSavedValue<int>("render-width", c.renderWidth);
         c.renderHeight = mod->getSavedValue<int>("render-height", c.renderHeight);
         c.renderFps = mod->getSavedValue<int>("render-fps", c.renderFps);
@@ -88,6 +112,14 @@ private:
         c.codec = mod->getSavedValue<std::string>("render-codec", c.codec);
         c.renderName = mod->getSavedValue<std::string>("render-name", c.renderName);
         c.renderAudio = mod->getSavedValue<bool>("render-audio", c.renderAudio);
+
+        // UI themes
+        c.theme = mod->getSavedValue<int>("theme", c.theme);
+        c.accentOverride = mod->getSavedValue<int>(
+            "accent-override",
+            c.accentOverride
+        );
+
         return c;
     }
 };
