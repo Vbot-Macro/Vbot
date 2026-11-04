@@ -5,12 +5,11 @@
 //   orbs, pads, portals, coins       green
 //   solid blocks and slopes          blue
 //   passable (pass-through) objects  cyan
-//   the player                       red box (the hazard box) + blue box (the block hitbox),
+//   the player                       red box (main hitbox) + small blue box (the inner block hitbox),
 //                                    plus the rotated box when "Player Rotation" is on
 // Decoration, triggers and other objects that can't be touched aren't drawn.
 //
-// Settings are saved between sessions. The colours are changed from the "+" button next to the
-// Hitboxes toggle on the Cheats tab.
+// Settings are saved between sessions. The options and colours are on the Visuals tab of the menu.
 #pragma once
 #include <Geode/Geode.hpp>
 
@@ -110,7 +109,7 @@ namespace detail {
 
 constexpr float LINE = 0.5f;          // outline width
 constexpr float FILL_ALPHA = 0.3f;    // fill strength when "Fill Hitboxes" is on
-constexpr float PLAYER_INNER = 0.5f;  // the red player box, as a share of the block hitbox's size
+constexpr float PLAYER_INNER = 0.25f; // the blue box's size, as a share of the red box's (a scale factor)
 
 inline cocos2d::ccColor4F rgba(cocos2d::ccColor3B c, float a = 1.f) {
     return {c.r / 255.f, c.g / 255.f, c.b / 255.f, a};
@@ -164,10 +163,12 @@ inline void drawObject(cocos2d::CCDrawNode* n, GameObject* obj, Settings& st) {
 inline void drawPlayer(cocos2d::CCDrawNode* n, PlayerObject* p, Settings& st) {
     if (!p) return;
     auto* obj = static_cast<GameObject*>(p); // the plain GameObject versions of these functions
-    auto block = obj->getObjectRect();
-    // The blue box is the one the player lands on blocks with; the red one is what hazards hurt.
-    rect(n, block, st.block, st.fill);
-    rect(n, obj->getObjectRect(block.size.width * PLAYER_INNER, block.size.height * PLAYER_INNER), st.hazard, st.fill);
+    // Red: the player's main box. Blue: the small inner box that decides whether a block kills you.
+    // getObjectRect(w, h) takes SCALE FACTORS of the normal box, not sizes in units.
+    auto outer = obj->getObjectRect();
+    auto inner = obj->getObjectRect(PLAYER_INNER, PLAYER_INNER);
+    rect(n, outer, st.hazard, st.fill);
+    rect(n, inner, st.block, st.fill);
     if (st.playerRotation) {
         if (auto* box = p->getOrientedBox()) {
             cocos2d::CCPoint pts[4] = {box->m_corners[0], box->m_corners[1], box->m_corners[2], box->m_corners[3]};
