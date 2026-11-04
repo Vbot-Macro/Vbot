@@ -16,8 +16,7 @@
 #include <Geode/ui/TextInput.hpp>
 
 #include <vector>
-
-#include "../assist/frame_windows.hpp"
+#include "../hooks/frame_windows.hpp"
 #include "../assist/hitboxes.hpp"
 #include "../bot/actions.hpp"
 #include "../bot/stats.hpp"
