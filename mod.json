@@ -9,6 +9,10 @@
     "version": "1.0.5-beta",
     "developer": "T1fyOwO",
     "description": "Multi Purpose Macro/Render Tool For Geometry Dash.",
+    "links": {
+        "community": "https://discord.gg/Cz8qDxSGTN",
+        "source": "https://github.com/Vbot-Macro/Vbot"
+    },
     "dependencies": {
         "geode.node-ids": ">=v1.23.3"
     },
