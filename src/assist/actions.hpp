@@ -18,21 +18,21 @@ namespace vbot {
 
 // --- folders ----------------------------------------------------------------------------------
 
-inline std::filesystem::path ensureDir(std::filesystem::path dir) {
+inline asp::fs::Path ensureDir(asp::fs::Path dir) {
     auto res = geode::utils::file::createDirectoryAll(dir);
     (void)res; // if this fails, the later read or write reports the real problem
     return dir;
 }
 
-inline std::filesystem::path macrosDir() {
+inline asp::fs::Path macrosDir() {
     return ensureDir(geode::Mod::get()->getConfigDir() / "Macros");
 }
 
-inline std::filesystem::path rendersDir() {
+inline asp::fs::Path rendersDir() {
     return ensureDir(geode::Mod::get()->getConfigDir() / "Renders");
 }
 
-inline std::filesystem::path macroPath(std::string const& name) {
+inline asp::fs::Path macroPath(std::string const& name) {
     return macrosDir() / (util::sanitizeName(name) + ".vb");
 }
 
@@ -42,9 +42,9 @@ inline std::vector<std::string> listMacros() {
     auto res = geode::utils::file::readDirectory(macrosDir());
     if (!res) return names;
     for (auto const& p : res.unwrap()) {
-        if (p.extension() == ".vb") {
-            names.push_back(geode::utils::string::pathToString(p.stem()));
-        }
+        auto ext = p.extension();
+        auto stem = p.stem();
+        if (ext && stem && ext->string() == "vb") names.push_back(stem->string());
     }
     std::sort(names.begin(), names.end());
     return names;
