@@ -27,5 +27,10 @@ add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 CPMAddPackage("gh:matcool/gd-imgui-cocos#934958c68b1f050a8976d893584fa71368c1df1f")
 target_link_libraries(${PROJECT_NAME} imgui-cocos)
 
+if (WIN32)
+    CPMAddPackage("gh:cursey/safetyhook#2f28386")
+    target_link_libraries(${PROJECT_NAME} safetyhook)
+endif()
+
 # Set up dependencies, resources, and link Geode.
 setup_geode_mod(${PROJECT_NAME})
