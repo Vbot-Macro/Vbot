@@ -2,8 +2,6 @@ name: Build Mod
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["**"]
 
 jobs:
   build:
