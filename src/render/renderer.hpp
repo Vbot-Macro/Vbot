@@ -148,10 +148,11 @@ private:
         std::string base = util::sanitizeName(Config::get().renderName, "render");
         auto path = dir / (base + ".mp4");
         // never overwrite an earlier render
-        for (int n = 1; std::filesystem::exists(path) && n < 10000; n++) {
+        for (int n = 1; asp::fs::exists(path) && n < 10000; n++) {
             path = dir / fmt::format("{}_{}.mp4", base, n);
         }
-        return path;
+        // the FFmpeg API mod takes a std::filesystem::path
+        return path.toStdPath().unwrapOr(std::filesystem::path(path.string()));
     }
 
     void begin() {
@@ -217,7 +218,7 @@ private:
             return;
         }
         if (m_recorder) m_recorder->stop();
-        auto name = geode::utils::string::pathToString(m_output.filename());
+        auto name = m_output.filename().string();
         uint64_t frames = m_frames;
         int fps = m_fps;
         release();
