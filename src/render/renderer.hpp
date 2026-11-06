@@ -12,6 +12,7 @@
 // link against it. If FFmpeg API isn't installed, the Recorder just isn't valid and we say so.
 #pragma once
 #include <Geode/Geode.hpp>
+#include <asp/fs/std.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -148,7 +149,7 @@ private:
         std::string base = util::sanitizeName(Config::get().renderName, "render");
         auto path = dir / (base + ".mp4");
         // never overwrite an earlier render
-        for (int n = 1; asp::fs::exists(path) && n < 10000; n++) {
+        for (int n = 1; path.exists() && n < 10000; n++) {
             path = dir / fmt::format("{}_{}.mp4", base, n);
         }
         // the FFmpeg API mod takes a std::filesystem::path
