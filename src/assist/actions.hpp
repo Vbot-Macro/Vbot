@@ -44,7 +44,7 @@ inline std::vector<std::string> listMacros() {
     for (auto const& p : res.unwrap()) {
         auto ext = p.extension();
         auto stem = p.stem();
-        if (ext && stem && ext->string() == "vb") names.push_back(stem->string());
+        if (ext && stem && *ext == "vb") names.emplace_back(*stem);
     }
     std::sort(names.begin(), names.end());
     return names;
