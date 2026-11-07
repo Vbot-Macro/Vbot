@@ -1,8 +1,8 @@
 // menu.cpp - the Vbot menu, drawn with ImGui (gd-imgui-cocos).
 //
-//   Replay    session (record / replay / stop), speed and timing (TPS bypass, speed hack), physics readout
-//   Assists   noclip, frame windows
-//   Visuals   hitboxes: options and colours
+//   Replay    session (record / replay / stop), physics readout
+//   Assists   TPS bypass, autoclicker (soon), noclip, speed hack
+//   Visuals   hitboxes: options and colours, layout mode and show hitboxes on death (soon)
 //   Render    video settings and the Render button
 //   Settings  theme and accent colour
 //
@@ -21,7 +21,6 @@
 
 #include "../assist/actions.hpp"
 #include "../assist/util.hpp"
-#include "../hooks/frame_windows.hpp"
 #include "../hooks/stats.hpp"
 #include "../physics/hitboxes.hpp"
 #include "../settings/settings.hpp"
@@ -189,6 +188,14 @@ bool checkbox(char const* label, bool& value) {
     return ImGui::Checkbox(label, &value);
 }
 
+// A feature that isn't built yet: shown greyed out.
+void soon(char const* label) {
+    bool off = false;
+    ImGui::BeginDisabled();
+    ImGui::Checkbox((std::string(label) + " (soon)").c_str(), &off);
+    ImGui::EndDisabled();
+}
+
 // --- hitbox settings -------------------------------------------------------------------------
 
 ccColor3B& hbColor(int i) {
@@ -205,12 +212,11 @@ ccColor3B& hbColor(int i) {
 
 void pageReplay(float width) {
     auto& cfg = vbot::Config::get();
-    float half = halfWidth();
 
     static char nameBuf[64] = "";
     static size_t savedCount = vbot::listMacros().size();
 
-    panel("Session", half, [&] {
+    panel("Session", width, [&] {
         std::string out;
         float arrow = ImGui::GetFrameHeight();
         ImGui::SetNextItemWidth(-(arrow * 2.f + ImGui::GetStyle().ItemSpacing.x * 2.f));
@@ -249,20 +255,8 @@ void pageReplay(float width) {
         ImGui::SameLine();
         if (ImGui::Button("Replay", ImVec2(bw, 0))) vbot::armReplay();
         ImGui::SameLine();
-        if (ImGui::Button("Stop", ImVec2(bw, 0))) {
-            vbot::fw::cancel("stopped");
-            vbot::stopAll();
-        }
+        if (ImGui::Button("Stop", ImVec2(bw, 0))) vbot::stopAll();
         ImGui::TextDisabled("%zu saved macros", savedCount);
-    });
-    ImGui::SameLine();
-    panel("Speed and Timing", half, [&] {
-        if (checkbox("TPS Bypass", cfg.tpsBypass)) cfg.save();
-        if (intField("##tps", cfg.tps, vbot::NORMAL_TPS, vbot::MAX_TPS, 60, 240)) cfg.save();
-        ImGui::TextDisabled("TPS (240-6000)");
-        if (checkbox("Speed hack", cfg.speedHack)) cfg.save();
-        if (floatField("##speed", cfg.speed, 0.1f, 10.f, 0.1f, 0.5f)) cfg.save();
-        ImGui::TextDisabled("Speed (0.1-10)");
     });
 
     panel("Physics", width, [&] {
@@ -287,24 +281,21 @@ void pageReplay(float width) {
     });
 }
 
-void pageAssists(float) {
+void pageAssists(float width) {
     auto& cfg = vbot::Config::get();
-    float half = halfWidth();
 
-    panel("Assists", half, [&] {
+    panel("Assists", width, [&] {
+        if (checkbox("TPS Bypass", cfg.tpsBypass)) cfg.save();
+        if (intField("##tps", cfg.tps, vbot::NORMAL_TPS, vbot::MAX_TPS, 60, 240)) cfg.save();
+        ImGui::TextDisabled("TPS (240-6000)");
+        ImGui::Spacing();
+        soon("Autoclicker");
+        ImGui::Spacing();
         if (checkbox("Noclip", cfg.noclip)) cfg.save();
         ImGui::Spacing();
-        if (ImGui::Button("Frame windows", ImVec2(-FLT_MIN, 0))) {
-            vbot::fw::start();
-            if (vbot::fw::active()) VbotMenu::close(); // close the menu so the level can run
-        }
-        ImGui::TextDisabled("Needs practice mode off.");
-    });
-    ImGui::SameLine();
-    panel("Frame windows", half, [&] {
-        ImGui::TextWrapped(
-            "Replays the chosen macro with each click moved a few frames, to find how many frames of "
-            "leeway each one has. The result shows in the top-left of the level. TPS must match the macro.");
+        if (checkbox("Speedhack", cfg.speedHack)) cfg.save();
+        if (floatField("##speed", cfg.speed, 0.1f, 10.f, 0.1f, 0.5f)) cfg.save();
+        ImGui::TextDisabled("Speed (0.1-10)");
     });
 }
 
@@ -329,6 +320,9 @@ void pageVisuals(float) {
         changed |= checkbox("Player", hb.player);
         changed |= checkbox("Show Activated Orbs", hb.showActivated);
         if (changed) hb.save();
+        ImGui::Separator();
+        soon("Layout Mode");
+        soon("SHBOD (Show Hitboxes On Death)");
     });
     ImGui::SameLine();
     panel("Colours", half, [&] {
