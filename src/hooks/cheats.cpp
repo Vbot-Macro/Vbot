@@ -11,8 +11,9 @@
 #include <array>
 #include <cmath>
 
-#include "frame_windows.hpp"
+#include "../assist/actions.hpp"
 #include "../physics/hitboxes.hpp"
+#include "../replay/macro.hpp"
 #include "../render/renderer.hpp"
 #include "../settings/settings.hpp"
 #include "stats.hpp"
@@ -205,7 +206,6 @@ class $modify(VbScheduler, CCScheduler) {
             auto* scene = CCDirector::get()->getRunningScene();
             if (!(scene && scene->getChildByType<PauseLayer>(0))) dt = rawDt * cfg.effectiveSpeed();
         }
-        if (pl && vbot::fw::active()) dt = rawDt * vbot::fw::boost(); // the frame windows test runs fast
 
         bool patchMode = pl && patchAvailable(wantsBypass(cfg));
 
@@ -271,8 +271,7 @@ class $modify(VbCheatPlayLayer, PlayLayer) {
     // Noclip: ignore deaths. The anticheat spike is the one thing that still kills,
     // so the game's own cheat protection keeps working.
     void destroyPlayer(PlayerObject* player, GameObject* object) {
-        if (vbot::Config::get().noclip && !vbot::fw::active() && object != m_anticheatSpike) return;
-        vbot::fw::onDeath();
+        if (vbot::Config::get().noclip && object != m_anticheatSpike) return;
         vbot::Renderer::get().notePlayerDied();
         PlayLayer::destroyPlayer(player, object);
     }
@@ -281,7 +280,6 @@ class $modify(VbCheatPlayLayer, PlayLayer) {
     void postUpdate(float dt) {
         PlayLayer::postUpdate(dt);
         g_postUpdateRan = true;
-        vbot::fw::tick(this);
         if (g_skipDraw || !vbot::Config::get().hitboxes) return;
         drawGameHitboxes(this);
     }
@@ -294,7 +292,6 @@ class $modify(VbCheatPlayLayer, PlayLayer) {
 
     // Cheats on: treat the completion as a test run so it isn't saved.
     void levelComplete() {
-        if (vbot::fw::onComplete()) return; // the frame windows test: a pass, not a real completion
         vbot::Renderer::get().noteLevelComplete();
         if (vbot::Config::get().cheatsActive()) {
             m_isTestMode = true;
