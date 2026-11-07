@@ -106,6 +106,9 @@ public:
     size_t clickCount() const { return m_clicks.size(); }
     size_t clickIndex() const { return m_k; }
     bool baselineFailed() const { return m_baselineFailed; }
+    // The unmodified replay died (e.g. the macro stops before the level ends): clicks are then
+    // measured against reaching the frame it died on.
+    bool baselineDied() const { return m_cap != 0; }
     std::vector<uint32_t> const& windows() const { return m_windows; }
 
     // The next attempt to run. Returns false when everything has been measured.
@@ -137,13 +140,17 @@ public:
     }
 
     // The result of the attempt `next` just returned.
-    void report(bool survived) {
+    // `deathFrame` is the frame the attempt died on, if it did.
+    void report(bool survived, uint32_t deathFrame = 0) {
         if (!m_pending) return;
         m_pending = false;
         switch (m_phase) {
             case Phase::Baseline:
                 if (survived) { m_phase = Phase::Earlier; m_k = 0; m_s = 1; m_e = 0; }
-                else { m_baselineFailed = true; m_phase = Phase::Done; }
+                else if (deathFrame > m_inputs.front().frame + 1) {
+                    m_cap = deathFrame - 1;
+                    m_phase = Phase::Earlier; m_k = 0; m_s = 1; m_e = 0;
+                } else { m_baselineFailed = true; m_phase = Phase::Done; }
                 break;
             case Phase::Earlier:
                 if (survived) { m_e = m_s; m_s++; }
@@ -190,6 +197,7 @@ private:
         for (size_t i = pi + 1; i < m_inputs.size(); i++) {
             if (m_inputs[i].down) { t.endFrame = m_inputs[i].frame + AFTER; break; }
         }
+        if (m_cap != 0) t.endFrame = std::min(t.endFrame, m_cap);
         return t;
     }
 
@@ -197,6 +205,7 @@ private:
     std::vector<size_t> m_clicks;   // indexes of the presses
     std::vector<uint32_t> m_windows;
     uint32_t m_last = 0;
+    uint32_t m_cap = 0;             // set when the unmodified replay died: the last frame it survived
     Phase m_phase = Phase::Baseline;
     size_t m_k = 0;
     int m_s = 1, m_e = 0, m_l = 0;
@@ -288,6 +297,7 @@ struct Session {
     bool started = false;     // the first restart has happened
     bool succeeded = false;   // this attempt reached its end frame (or the level)
     bool failed = false;      // this attempt died
+    uint32_t deathFrame = 0;  // the frame it died on
     bool resetCalled = false; // we already asked for the next restart
     uint32_t ticks = 0;       // frames since the last restart, to notice a stuck test
     uint32_t steps = 0;       // physics steps since the last restart
@@ -360,6 +370,7 @@ inline void autoDisable(char const* why) {
 inline void finish() {
     auto& se = Session::get();
     bool baselineFailed = se.planner->baselineFailed();
+    if (se.planner->baselineDied()) geode::log::info("Vbot frame windows: the macro dies when replayed as is, measuring up to that point");
     auto windowsFound = se.planner->windows();
     se.active = false;
     se.planner.reset();
@@ -420,10 +431,16 @@ inline void start() {
     // start" button, which is the exact code path the game uses (resume, close the pause screen,
     // restart and start moving). Doing those steps by hand left the player stuck on the first frame.
     geode::log::info("Vbot frame windows: starting, {} clicks", se.planner->clickCount());
-    PauseLayer* pause = nullptr;
-    if (auto* scene = cocos2d::CCDirector::get()->getRunningScene()) pause = scene->getChildByType<PauseLayer>(0);
-    if (pause) pause->onRestartFull(nullptr);
-    else pl->resumeAndRestart(true);
+    // Queued so it runs at the start of the next frame, not in the middle of drawing the menu.
+    geode::queueInMainThread([] {
+        auto* pl = PlayLayer::get();
+        if (!pl || !Session::get().active) return;
+        PauseLayer* pause = nullptr;
+        if (auto* scene = cocos2d::CCDirector::get()->getRunningScene()) pause = scene->getChildByType<PauseLayer>(0);
+        geode::log::info("Vbot frame windows: restarting ({})", pause ? "pause screen" : "no pause screen");
+        if (pause) pause->onRestartFull(nullptr);
+        else pl->resumeAndRestart(true);
+    });
 }
 
 // Every restart of the level. Reports the last attempt and loads the next one.
@@ -435,10 +452,11 @@ inline void onReset() {
     // A restart with no physics step since the last one isn't a real attempt (the game can restart
     // twice in a row): load the same attempt again instead of counting it as a failure.
     bool duplicate = se.started && se.steps == 0 && !se.failed && !se.succeeded;
-    if (se.started && !duplicate) se.planner->report(se.succeeded && !se.failed);
+    if (se.started && !duplicate) se.planner->report(se.succeeded && !se.failed, se.failed ? se.deathFrame : 0);
     se.started = true;
     se.steps = 0;
     se.succeeded = se.failed = se.resetCalled = false;
+    se.deathFrame = 0;
     se.ticks = 0;
 
     if (duplicate) {
@@ -448,7 +466,7 @@ inline void onReset() {
         if (!se.planner->next(t)) { finish(); return; }
         se.trial = std::move(t);
     }
-    geode::log::debug("Vbot frame windows: attempt for click {} of {}, ends at frame {}", se.planner->clickIndex() + 1, se.planner->clickCount(), se.trial.endFrame);
+    geode::log::info("Vbot frame windows: attempt for click {} of {}, ends at frame {}", se.planner->clickIndex() + 1, se.planner->clickCount(), se.trial.endFrame);
 
     s.macro.fps = static_cast<uint32_t>(Config::get().effectiveTps());
     s.macro.inputs = se.trial.inputs;
@@ -463,14 +481,18 @@ inline void onReset() {
 inline void onStep(uint32_t frame) {
     auto& se = Session::get();
     if (!se.active || !se.started) return;
-    se.steps++;
+    if (se.steps++ == 0) geode::log::info("Vbot frame windows: first step of the attempt (frame {})", frame);
     if (se.succeeded || se.failed) return;
     if (frame >= se.trial.endFrame) se.succeeded = true;
 }
 
 inline void onDeath() {
     auto& se = Session::get();
-    if (se.active && se.started) se.failed = true;
+    if (se.active && se.started) {
+        se.failed = true;
+        se.deathFrame = State::get().frame;
+        geode::log::info("Vbot frame windows: attempt died on frame {}", se.deathFrame);
+    }
 }
 
 // Finishing the level counts as a pass. Returns true if the game's own completion should be skipped.
@@ -488,6 +510,7 @@ inline void tick(PlayLayer* pl) {
     if (se.active && se.started && ++se.ticks > 6000) { autoDisable("an attempt got stuck"); return; }
     if (!se.active || !se.started || !se.succeeded || se.failed || se.resetCalled) return;
     se.resetCalled = true;
+    geode::log::info("Vbot frame windows: attempt passed, restarting");
     pl->resetLevelFromStart();
 }
 
