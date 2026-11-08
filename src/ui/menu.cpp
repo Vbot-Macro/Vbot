@@ -1,13 +1,3 @@
-// menu.cpp - the Vbot menu, drawn with ImGui (gd-imgui-cocos).
-//
-//   Replay    session (record / replay / stop), physics readout
-//   Assists   TPS bypass, autoclicker (soon), noclip, speed hack
-//   Visuals   hitboxes: options and colours, layout mode and show hitboxes on death (soon)
-//   Render    video settings and the Render button
-//   Settings  theme and accent colour
-//
-// A status line at the bottom always shows the mode, the macro size, TPS and speed.
-// Every value is saved as soon as it changes. Colours come from the chosen theme (see themes/).
 #include "menu.hpp"
 
 #include <Geode/Geode.hpp>
@@ -32,13 +22,11 @@ namespace {
 
 bool s_open = false;
 int s_page = 0;
-bool s_styled = false;   // sizes and font scale are set once per ImGui context
+bool s_styled = false;
 float s_scale = 1.f;
 
 constexpr int PAGE_COUNT = 5;
 constexpr char const* PAGE_NAMES[PAGE_COUNT] = {"Replay", "Assists", "Visuals", "Render", "Settings"};
-
-// --- colours ---------------------------------------------------------------------------------
 
 ImVec4 toVec(ccColor3B c, float a = 1.f) {
     return ImVec4(c.r / 255.f, c.g / 255.f, c.b / 255.f, a);
@@ -48,7 +36,6 @@ ImVec4 mix(ImVec4 a, ImVec4 b, float t) {
     return ImVec4(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, 1.f);
 }
 
-// Sizes only change when the window size does, colours change with the theme, so they are separate.
 void applySizes(float displayHeight) {
     s_scale = std::clamp(displayHeight / 800.f, 1.f, 2.5f);
     auto& st = ImGui::GetStyle();
@@ -110,9 +97,6 @@ void applyColors(vbot::ui::Theme const& th) {
     c[ImGuiCol_ScrollbarGrabActive] = acc;
 }
 
-// --- small widgets ---------------------------------------------------------------------------
-
-// A panel with an accent bar and a title. `body` draws the contents.
 template <class F>
 void panel(char const* title, float width, F&& body, float height = 0.f) {
     ImGuiChildFlags flags = ImGuiChildFlags_Borders | ImGuiChildFlags_AlwaysUseWindowPadding;
@@ -135,8 +119,6 @@ float halfWidth() {
     return (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * .5f;
 }
 
-// Whole-number field that applies its value when the edit ends (so typing "5" on the way to
-// "500" is not clamped to the minimum), or right away when the +/- buttons are used.
 bool intField(char const* id, int& value, int lo, int hi, int step, int stepFast) {
     int temp = value;
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -157,7 +139,6 @@ bool floatField(char const* id, float& value, float lo, float hi, float step, fl
     return true;
 }
 
-// Text field backed by a buffer. The buffer follows the saved value unless something is being edited.
 bool textField(char const* id, std::string const& saved, char* buf, size_t size, std::string& out) {
     if (!ImGui::IsAnyItemActive()) {
         std::strncpy(buf, saved.c_str(), size - 1);
@@ -188,15 +169,12 @@ bool checkbox(char const* label, bool& value) {
     return ImGui::Checkbox(label, &value);
 }
 
-// A feature that isn't built yet: shown greyed out.
 void soon(char const* label) {
     bool off = false;
     ImGui::BeginDisabled();
     ImGui::Checkbox((std::string(label) + " (soon)").c_str(), &off);
     ImGui::EndDisabled();
 }
-
-// --- hitbox settings -------------------------------------------------------------------------
 
 ccColor3B& hbColor(int i) {
     auto& st = vbot::hb::Settings::get();
@@ -207,8 +185,6 @@ ccColor3B& hbColor(int i) {
         default: return st.passable;
     }
 }
-
-// --- pages -----------------------------------------------------------------------------------
 
 void pageReplay(float width) {
     auto& cfg = vbot::Config::get();
@@ -307,7 +283,6 @@ void pageVisuals(float) {
     panel("Hitboxes", half, [&] {
         if (checkbox("Hitboxes", cfg.hitboxes)) {
             cfg.save();
-            // Apply right away if a level is open behind the menu.
             if (auto* pl = PlayLayer::get()) {
                 pl->updateDebugDrawSettings();
                 if (!pl->m_isDebugDrawEnabled && pl->m_debugDrawNode) pl->m_debugDrawNode->clear();
@@ -417,8 +392,6 @@ void pageSettings(float) {
     });
 }
 
-// --- window ----------------------------------------------------------------------------------
-
 void statusLine() {
     auto& state = vbot::State::get();
     auto& cfg = vbot::Config::get();
@@ -472,7 +445,7 @@ void draw() {
     if (!open) s_open = false;
 }
 
-} // namespace
+}
 
 bool VbotMenu::isOpen() { return s_open; }
 void VbotMenu::open() { s_open = true; }
@@ -482,8 +455,8 @@ void VbotMenu::toggle() { s_open = !s_open; }
 $on_mod(Loaded) {
     ImGuiCocos::get()
         .setup([] {
-            ImGui::GetIO().IniFilename = nullptr; // no imgui.ini
-            s_styled = false;                       // sizes are set on the next draw
+            ImGui::GetIO().IniFilename = nullptr;
+            s_styled = false;
         })
         .draw([] { draw(); });
 }

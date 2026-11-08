@@ -1,4 +1,3 @@
-// settings.hpp - every Vbot setting that the menu changes. Saved between sessions.
 #pragma once
 #include <Geode/Geode.hpp>
 #include <algorithm>
@@ -7,23 +6,19 @@
 namespace vbot {
 
 constexpr int NORMAL_TPS = 240;
-constexpr int MAX_TPS = 6000; // highest TPS the bypass accepts
+constexpr int MAX_TPS = 6000;
 
 struct Config {
-    // macros
     std::string macroName = "last";
 
-    // cheats
     bool noclip = false;
     bool hitboxes = false;
     bool tpsBypass = false;
     int tps = NORMAL_TPS;
     bool speedHack = false;
     float speed = 1.0f;
-    // Not saved: set when the TPS bypass can't run on this device/game version.
     bool tpsUnavailable = false;
 
-    // renderer
     int renderWidth = 1920;
     int renderHeight = 1080;
     int renderFps = 60;
@@ -32,26 +27,22 @@ struct Config {
     std::string renderName = "render";
     bool renderAudio = true;
 
-    // UI themes
     int theme = 0;
-    int accentOverride = -1; // -1 = default theme accent
+    int accentOverride = -1;
 
     static Config& get() {
         static Config c = load();
         return c;
     }
 
-    // The tick rate the game is actually running at.
     int effectiveTps() const {
         return (tpsBypass && !tpsUnavailable) ? tps : NORMAL_TPS;
     }
 
-    // Game speed multiplier actually in effect.
     float effectiveSpeed() const {
         return speedHack ? speed : 1.0f;
     }
 
-    // True when something is on that makes a completion not count.
     bool cheatsActive() const {
         return noclip || effectiveTps() != NORMAL_TPS || effectiveSpeed() != 1.0f;
     }
@@ -59,10 +50,8 @@ struct Config {
     void save() const {
         auto* mod = geode::Mod::get();
 
-        // macros
         mod->setSavedValue<std::string>("macro-name", macroName);
 
-        // cheats
         mod->setSavedValue<bool>("noclip", noclip);
         mod->setSavedValue<bool>("hitboxes", hitboxes);
         mod->setSavedValue<bool>("tps-bypass", tpsBypass);
@@ -70,7 +59,6 @@ struct Config {
         mod->setSavedValue<bool>("speed-hack", speedHack);
         mod->setSavedValue<float>("speed", speed);
 
-        // renderer
         mod->setSavedValue<int>("render-width", renderWidth);
         mod->setSavedValue<int>("render-height", renderHeight);
         mod->setSavedValue<int>("render-fps", renderFps);
@@ -79,7 +67,6 @@ struct Config {
         mod->setSavedValue<std::string>("render-name", renderName);
         mod->setSavedValue<bool>("render-audio", renderAudio);
 
-        // UI themes
         mod->setSavedValue<int>("theme", theme);
         mod->setSavedValue<int>("accent-override", accentOverride);
     }
@@ -89,10 +76,8 @@ private:
         auto* mod = geode::Mod::get();
         Config c;
 
-        // macros
         c.macroName = mod->getSavedValue<std::string>("macro-name", c.macroName);
 
-        // cheats
         c.noclip = mod->getSavedValue<bool>("noclip", c.noclip);
         c.hitboxes = mod->getSavedValue<bool>("hitboxes", c.hitboxes);
         c.tpsBypass = mod->getSavedValue<bool>("tps-bypass", c.tpsBypass);
@@ -104,7 +89,6 @@ private:
         c.speedHack = mod->getSavedValue<bool>("speed-hack", c.speedHack);
         c.speed = mod->getSavedValue<float>("speed", c.speed);
 
-        // renderer
         c.renderWidth = mod->getSavedValue<int>("render-width", c.renderWidth);
         c.renderHeight = mod->getSavedValue<int>("render-height", c.renderHeight);
         c.renderFps = mod->getSavedValue<int>("render-fps", c.renderFps);
@@ -113,7 +97,6 @@ private:
         c.renderName = mod->getSavedValue<std::string>("render-name", c.renderName);
         c.renderAudio = mod->getSavedValue<bool>("render-audio", c.renderAudio);
 
-        // UI themes
         c.theme = mod->getSavedValue<int>("theme", c.theme);
         c.accentOverride = mod->getSavedValue<int>(
             "accent-override",
@@ -124,4 +107,4 @@ private:
     }
 };
 
-} // namespace vbot
+}

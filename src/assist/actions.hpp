@@ -1,8 +1,3 @@
-// actions.hpp - what Record / Replay / Render do, plus where files live.
-//
-// Files go in Geode's config folder:
-//   config/t1fy.vbot/Macros/<name>.vb
-//   config/t1fy.vbot/Renders/<name>.mp4
 #pragma once
 #include <Geode/Geode.hpp>
 
@@ -16,11 +11,9 @@
 
 namespace vbot {
 
-// --- folders ----------------------------------------------------------------------------------
-
 inline asp::fs::Path ensureDir(asp::fs::Path dir) {
     auto res = geode::utils::file::createDirectoryAll(dir);
-    (void)res; // if this fails, the later read or write reports the real problem
+    (void)res;
     return dir;
 }
 
@@ -36,7 +29,6 @@ inline asp::fs::Path macroPath(std::string const& name) {
     return macrosDir() / (util::sanitizeName(name) + ".vb");
 }
 
-// Names (without .vb) of every saved macro, sorted.
 inline std::vector<std::string> listMacros() {
     std::vector<std::string> names;
     auto res = geode::utils::file::readDirectory(macrosDir());
@@ -50,13 +42,9 @@ inline std::vector<std::string> listMacros() {
     return names;
 }
 
-// --- feedback ---------------------------------------------------------------------------------
-
 inline void toast(std::string const& text, geode::NotificationIcon icon = geode::NotificationIcon::Info) {
     geode::Notification::create(text, icon)->show();
 }
-
-// --- macro actions ----------------------------------------------------------------------------
 
 inline void toggleRecord() {
     auto& s = State::get();
@@ -97,8 +85,6 @@ inline void toggleRecord() {
     toast("Recording. Place checkpoints and keep going: every attempt is added until you stop.");
 }
 
-// Loads the macro named in the settings and switches to replay mode. Returns false (and says why)
-// if it can't. With quiet = true it doesn't show the "restart the level" toast.
 inline bool armReplay(bool quiet = false) {
     auto& s = State::get();
     auto& cfg = Config::get();
@@ -136,7 +122,6 @@ inline void stopAll() {
     State::get().mode = Mode::Idle;
 }
 
-// Render button: loads the macro and arms the renderer. The video starts on the next level restart.
 inline void startRender() {
     if (!canRender()) return;
     if (State::get().mode == Mode::Recording) {
@@ -156,4 +141,4 @@ inline void startRender() {
     toast("Render ready. Close the menu and restart the level to start.", geode::NotificationIcon::Success);
 }
 
-} // namespace vbot
+}

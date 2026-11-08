@@ -1,15 +1,3 @@
-// hitboxes.hpp - Vbot's own hitbox drawing, with colours you can change.
-//
-// What gets drawn (always, in any mode, whenever the Hitboxes toggle is on):
-//   hazards (spikes, saws, ...)      red
-//   orbs, pads, portals, coins       green
-//   solid blocks and slopes          blue
-//   passable (pass-through) objects  cyan
-//   the player                       red box (main hitbox) + small blue box (the inner block hitbox),
-//                                    plus the rotated box when "Player Rotation" is on
-// Decoration, triggers and other objects that can't be touched aren't drawn.
-//
-// Settings are saved between sessions. The options and colours are on the Visuals tab of the menu.
 #pragma once
 #include <Geode/Geode.hpp>
 
@@ -19,10 +7,8 @@
 
 namespace vbot::hb {
 
-// What kind of thing an object is, for colouring.
 enum class Kind { None, Hazard, Orb, Block, Passable };
 
-// Which colour an object gets. `passable` is the object's own "pass-through" flag; it wins over the type.
 inline Kind kindOf(GameObjectType type, bool passable) {
     switch (type) {
         case GameObjectType::Decoration:
@@ -44,15 +30,15 @@ inline Kind kindOf(GameObjectType type, bool passable) {
         case GameObjectType::CollisionObject:
             return Kind::Block;
         default:
-            return Kind::Orb; // orbs, pads, portals, coins and other things the player touches
+            return Kind::Orb;
     }
 }
 
 struct Settings {
-    bool fill = false;          // fill the boxes, not only their outlines
-    bool playerRotation = true; // also draw the player's rotated box
-    bool player = true;         // draw the player's boxes
-    bool showActivated = true;  // orbs that have been used are drawn filled so you can see them
+    bool fill = false;
+    bool playerRotation = true;
+    bool player = true;
+    bool showActivated = true;
     cocos2d::ccColor3B hazard{255, 0, 0};
     cocos2d::ccColor3B orb{0, 255, 0};
     cocos2d::ccColor3B block{0, 0, 255};
@@ -107,9 +93,9 @@ private:
 
 namespace detail {
 
-constexpr float LINE = 0.5f;          // outline width
-constexpr float FILL_ALPHA = 0.3f;    // fill strength when "Fill Hitboxes" is on
-constexpr float PLAYER_INNER = 0.25f; // the blue box's size, as a share of the red box's (a scale factor)
+constexpr float LINE = 0.5f;
+constexpr float FILL_ALPHA = 0.3f;
+constexpr float PLAYER_INNER = 0.25f;
 
 inline cocos2d::ccColor4F rgba(cocos2d::ccColor3B c, float a = 1.f) {
     return {c.r / 255.f, c.g / 255.f, c.b / 255.f, a};
@@ -148,7 +134,6 @@ inline void drawObject(cocos2d::CCDrawNode* n, GameObject* obj, Settings& st) {
         return;
     }
 
-    // An object turned by something other than a multiple of 90 degrees has a rotated box.
     float rot = std::fmod(std::abs(obj->getRotation()), 90.f);
     if (rot > 0.01f && rot < 89.99f) {
         if (auto* box = obj->getOrientedBox()) {
@@ -162,11 +147,8 @@ inline void drawObject(cocos2d::CCDrawNode* n, GameObject* obj, Settings& st) {
 
 inline void drawPlayer(cocos2d::CCDrawNode* n, PlayerObject* p, Settings& st) {
     if (!p) return;
-    auto* obj = static_cast<GameObject*>(p); // the plain GameObject versions of these functions
-    // Red: the player's main box. Blue: the small inner box that decides whether a block kills you.
+    auto* obj = static_cast<GameObject*>(p);
     auto outer = obj->getObjectRect();
-    // The small box is worked out from the red one: getObjectRect(w, h) gives the bounding box of the
-    // turned player, which is larger than the player.
     cocos2d::CCRect inner(outer.getMidX() - outer.size.width * PLAYER_INNER / 2.f,
                           outer.getMidY() - outer.size.height * PLAYER_INNER / 2.f,
                           outer.size.width * PLAYER_INNER, outer.size.height * PLAYER_INNER);
@@ -180,11 +162,8 @@ inline void drawPlayer(cocos2d::CCDrawNode* n, PlayerObject* p, Settings& st) {
     }
 }
 
-} // namespace detail
+}
 
-// Redraws every hitbox. `node` is the game's debug draw node (a child of the object layer).
-// The objects come from the same place the game's own hitbox drawing reads them: the section grid
-// (m_sections), limited to the sections on screen. Every index is checked against the real size.
 inline void draw(GJBaseGameLayer* gl, cocos2d::CCDrawNode* node) {
     if (!gl || !node) return;
     auto& st = Settings::get();
@@ -211,18 +190,16 @@ inline void draw(GJBaseGameLayer* gl, cocos2d::CCDrawNode* node) {
         }
     }
 
-    // An object that touches several sections is listed in each: draw it once.
     std::sort(visible.begin(), visible.end());
     visible.erase(std::unique(visible.begin(), visible.end()), visible.end());
     for (auto* obj : visible) detail::drawObject(node, obj, st);
 
     if (st.player) {
         detail::drawPlayer(node, gl->m_player1, st);
-        // the second player only counts while it is shown, or its box is left behind at the spawn point
         if (gl->m_gameState.m_isDualMode && gl->m_player2 && gl->m_player2->isVisible()) {
             detail::drawPlayer(node, gl->m_player2, st);
         }
     }
 }
 
-} // namespace vbot::hb
+}

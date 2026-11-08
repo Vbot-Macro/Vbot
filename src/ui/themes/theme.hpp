@@ -1,7 +1,3 @@
-// theme.hpp - what a theme is. Each theme lives in its own file in this folder.
-//
-// A theme is three colours: the window background, the panels inside it, and the accent (the
-// highlighted tab, the bars next to section titles).
 #pragma once
 #include <Geode/Geode.hpp>
 
@@ -14,4 +10,4 @@ struct Theme {
     cocos2d::ccColor3B accent;
 };
 
-} // namespace vbot::ui
+}

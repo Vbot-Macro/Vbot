@@ -1,10 +1,3 @@
-// step_patch.hpp - lets the TPS bypass choose how many physics steps the game runs per frame.
-//
-// The game turns the frame time into a step count (about time * 240) inside GJBaseGameLayer::update.
-// This file replaces that one calculation so the count comes from g_count. Android and Windows 2.2081
-// use a raw byte patch (a hook would change the registers the game keeps for the following steps).
-// Windows 2.2091 uses three SafetyHook mid-function hooks. If the spot isn't recognised or another
-// mod already changed it, nothing is touched and the TPS bypass stays off.
 #pragma once
 #include <Geode/Geode.hpp>
 
@@ -21,18 +14,16 @@
 
 namespace vbot::stepPatch {
 
-// The step count the patched game code reads each frame. Written by our update() hook.
 inline uint32_t g_count = 1;
 
-// Which platforms have a known patch spot for the game version being built for.
 #if defined(GEODE_IS_ANDROID64)
 #define VBOT_STEP_ANDROID 1
 #endif
 #if defined(GEODE_IS_WINDOWS) && GEODE_COMP_GD_VERSION < 22091
-#define VBOT_STEP_WINDOWS 1 // one raw patch (2.2081)
+#define VBOT_STEP_WINDOWS 1
 #endif
 #if defined(GEODE_IS_WINDOWS) && GEODE_COMP_GD_VERSION >= 22091
-#define VBOT_STEP_MIDHOOK 1 // three mid-function hooks (2.2091)
+#define VBOT_STEP_MIDHOOK 1
 #endif
 
 #if defined(VBOT_STEP_ANDROID) || defined(VBOT_STEP_WINDOWS) || defined(VBOT_STEP_MIDHOOK)
@@ -45,20 +36,18 @@ enum class State { Untried, Ready, Unavailable };
 inline State g_state = State::Untried;
 inline geode::Patch* g_patch = nullptr;
 inline bool g_on = false;
-inline std::string g_why; // set when the patch can't be used
-inline bool g_whyIsFullMessage = false; // g_why is already the complete toast text
+inline std::string g_why;
+inline bool g_whyIsFullMessage = false;
 
 #ifdef VBOT_STEP_ANDROID
-// The ten arm64 instructions expected at the spot. Each game version has its own bytes. The patch only
-// goes in if they match, and the registers it overwrites are not read again afterwards.
 #if GEODE_COMP_GD_VERSION >= 22091
 inline constexpr uintptr_t OFFSET = 0x9ed6e4;
-inline constexpr size_t BLE_INDEX = 6; // the b.le in the ten
+inline constexpr size_t BLE_INDEX = 6;
 inline constexpr std::array<uint32_t, 10> ORIGINAL = {
     0x1e62100d, 0x1e2e1000, 0x1e6d09cd, 0x1e6241ac, 0x1e26418a,
     0x1e202150, 0x540073cd, 0x1e380140, 0x1e620000, 0xb900d3a0,
 };
-inline constexpr uint32_t STORE_COUNT = 0xb900d3a0; // str w0, [x29, #0xd0]
+inline constexpr uint32_t STORE_COUNT = 0xb900d3a0;
 #else
 inline constexpr uintptr_t OFFSET = 0x89d9f8;
 inline constexpr size_t BLE_INDEX = 6;
@@ -66,11 +55,9 @@ inline constexpr std::array<uint32_t, 10> ORIGINAL = {
     0x1e62100a, 0x1e6a096a, 0x1e624140, 0x1e264009, 0x1e2e1000,
     0x1e202130, 0x5400758d, 0x1e380120, 0x1e620000, 0xb900e3a0,
 };
-inline constexpr uint32_t STORE_COUNT = 0xb900e3a0; // str w0, [x29, #0xe0]
+inline constexpr uint32_t STORE_COUNT = 0xb900e3a0;
 #endif
 
-// Replacement: w0 = max(g_count, 1), d0 = w0 as a double, the count stored in the same stack slot,
-// then jump past the original ten. The last 8 bytes (appended later) are the address of g_count.
 inline constexpr std::array<uint32_t, 8> REPLACEMENT = {
     0x58000100, 0xb9400000, 0x7100041f, 0x1a9fa400,
     0x1e620000, STORE_COUNT, 0x14000004, 0xd503201f,
@@ -78,19 +65,13 @@ inline constexpr std::array<uint32_t, 8> REPLACEMENT = {
 #endif
 
 #ifdef VBOT_STEP_MIDHOOK
-// Windows 2.2091: three mid-function hooks inside GJBaseGameLayer::update (offsets into GeometryDash.exe).
-//   PHYS_DT     "* 4" becomes "* tps / 60" and that instruction is skipped
-//   STEP_COUNT  the loop counter is set so the game runs g_count steps
-//   RESTORE_DT  the time given to the steps is (1 / tps) * g_count
-// getModifiedDelta returns one step's time while this runs (see cheats.cpp).
 inline constexpr uintptr_t HOOK_PHYS_DT = 0x340900;
 inline constexpr uintptr_t HOOK_STEP_COUNT = 0x340B18;
 inline constexpr uintptr_t HOOK_RESTORE_DT = 0x341BC7;
 
-inline double g_tps = 240.0; // this frame's TPS, set by the update hook
+inline double g_tps = 240.0;
 inline std::vector<SafetyHookMid> g_hooks;
 
-// The hooks only act while g_on is set.
 inline void midPhysDt(safetyhook::Context& ctx) {
     if (!g_on) return;
     ctx.xmm1.f64[0] *= g_tps / 60.0;
@@ -109,9 +90,6 @@ inline void midRestoreDt(safetyhook::Context& ctx) {
 #endif
 
 #ifdef VBOT_STEP_WINDOWS
-// Windows 2.2081: the count math in GJBaseGameLayer::update (offset into GeometryDash.exe).
-// Replacement (x86-64): movabs r11, <address of g_count> ; mov r11d, [r11] ; jmp +0x31.
-// The original bytes aren't checked, so this build only loads on 2.2081.
 inline constexpr uintptr_t OFFSET = 0x237A5B;
 inline constexpr std::array<uint8_t, 18> WIN_REPLACEMENT = {
     0x49, 0xBB, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -121,7 +99,6 @@ inline constexpr std::array<uint8_t, 18> WIN_REPLACEMENT = {
 #endif
 
 #ifdef VBOT_STEP_ANDROID
-// Find the count math: at OFFSET, or else exactly one match within 64 KB (the b.le's distance may differ).
 inline uintptr_t findCountMath() {
     uintptr_t base = geode::base::get();
     auto* at = reinterpret_cast<const uint32_t*>(base + OFFSET);
@@ -130,14 +107,14 @@ inline uintptr_t findCountMath() {
     auto matches = [](const uint32_t* p) {
         for (size_t i = 0; i < ORIGINAL.size(); i++) {
             if (i == BLE_INDEX) {
-                if ((p[i] & 0xFF00001Fu) != 0x5400000Du) return false; // b.le
+                if ((p[i] & 0xFF00001Fu) != 0x5400000Du) return false;
             } else if (p[i] != ORIGINAL[i]) {
                 return false;
             }
         }
         return true;
     };
-    constexpr intptr_t RANGE = 0x10000 / 4; // 64 KB either side
+    constexpr intptr_t RANGE = 0x10000 / 4;
     uintptr_t found = 0;
     int count = 0;
     for (intptr_t i = -RANGE; i <= RANGE; i++) {
@@ -160,7 +137,6 @@ inline geode::Mod* conflictingMod(uintptr_t address) {
     return nullptr;
 }
 
-// Check the game's code and create the patch (left switched off). Returns true if usable.
 inline bool prepare() {
     if (g_state == State::Ready) return true;
     if (g_state == State::Unavailable) return false;
@@ -227,22 +203,21 @@ inline bool prepare() {
         return false;
     }
     g_patch = res.unwrap();
-    g_on = true; // a new patch starts switched on
+    g_on = true;
     (void)g_patch->disable();
     g_on = false;
     g_state = State::Ready;
     return true;
-#endif // VBOT_STEP_MIDHOOK
+#endif
 #else
     g_why = "not available for this platform and game version";
     return false;
 #endif
 }
 
-// Switch the patch on or off. Does nothing if it isn't ready or is already in that state.
 inline void setEnabled(bool on) {
 #ifdef VBOT_STEP_MIDHOOK
-    if (g_state == State::Ready) g_on = on; // the hooks stay installed; they only act while this is set
+    if (g_state == State::Ready) g_on = on;
     return;
 #endif
     if (g_state != State::Ready || !g_patch || g_on == on) return;
@@ -250,4 +225,4 @@ inline void setEnabled(bool on) {
     if (res) g_on = on;
 }
 
-} // namespace vbot::stepPatch
+}

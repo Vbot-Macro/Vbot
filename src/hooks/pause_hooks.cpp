@@ -1,4 +1,3 @@
-// pause_hooks.cpp - puts the macro_button.png icon on the pause screen.
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PauseLayer.hpp>
 

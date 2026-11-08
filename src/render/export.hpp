@@ -1,10 +1,6 @@
 #pragma once
 
-
-
 #include <Geode/platform/cplatform.h>
-
-
 
 #ifdef GEODE_IS_WINDOWS
 
@@ -24,11 +20,7 @@
 
 #endif
 
-
-
 #define FFMPEG_API_VERSION 2
-
-
 
 #define BEGIN_FFMPEG_NAMESPACE namespace ffmpeg {
 

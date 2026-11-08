@@ -1,18 +1,12 @@
 #pragma once
 
-
-
 #include <string>
 
 #include <filesystem>
 
 #include "../render/export.hpp"
 
-
-
 BEGIN_FFMPEG_NAMESPACE_V
-
-
 
 enum class PixelFormat : int {
 
@@ -68,8 +62,6 @@ enum class PixelFormat : int {
 
     NV21,
 
-
-
     ARGB,
 
     RGBA,
@@ -77,8 +69,6 @@ enum class PixelFormat : int {
     ABGR,
 
     BGRA,
-
-
 
     GRAY16BE,
 
@@ -94,8 +84,6 @@ enum class PixelFormat : int {
 
     RGB48LE,
 
-
-
     RGB565BE,
 
     RGB565LE,
@@ -103,8 +91,6 @@ enum class PixelFormat : int {
     RGB555BE,
 
     RGB555LE,
-
-
 
     BGR565BE,
 
@@ -114,11 +100,7 @@ enum class PixelFormat : int {
 
     BGR555LE,
 
-    
-
     VAAPI,
-
-
 
     YUV420P16LE,
 
@@ -134,8 +116,6 @@ enum class PixelFormat : int {
 
     DXVA2_VLD,
 
-
-
     RGB444LE,
 
     RGB444BE,
@@ -146,19 +126,13 @@ enum class PixelFormat : int {
 
     YA8,
 
-
-
     Y400A = YA8,
 
     GRAY8A = YA8,
 
-
-
     BGR48BE,
 
     BGR48LE,
-
-    
 
     YUV420P9BE,
 
@@ -240,11 +214,7 @@ enum class PixelFormat : int {
 
     YUVA444P16LE,
 
-
-
     VDPAU,
-
-
 
     XYZ12LE,
 
@@ -256,8 +226,6 @@ enum class PixelFormat : int {
 
     NV20BE,
 
-
-
     RGBA64BE,
 
     RGBA64LE,
@@ -266,17 +234,11 @@ enum class PixelFormat : int {
 
     BGRA64LE,
 
-
-
     YVYU422,
-
-
 
     YA16BE,
 
     YA16LE,
-
-
 
     GBRAP,
 
@@ -284,23 +246,13 @@ enum class PixelFormat : int {
 
     GBRAP16LE,
 
-    
-
     QSV,
-
-    
 
     MMAL,
 
-
-
     D3D11VA_VLD,
 
-    
-
     CUDA,
-
-
 
     _0RGB,
 
@@ -309,8 +261,6 @@ enum class PixelFormat : int {
     _0BGR,
 
     BGR0,
-
-
 
     YUV420P12BE,
 
@@ -346,8 +296,6 @@ enum class PixelFormat : int {
 
     YUVJ411P,
 
-
-
     BAYER_BGGR8,
 
     BAYER_RGGB8,
@@ -372,8 +320,6 @@ enum class PixelFormat : int {
 
     BAYER_GRBG16BE,
 
-
-
     YUV440P10LE,
 
     YUV440P10BE,
@@ -386,33 +332,21 @@ enum class PixelFormat : int {
 
     AYUV64BE,
 
-
-
     VIDEOTOOLBOX,
-
-
 
     P010LE,
 
     P010BE,
 
-
-
     GBRAP12BE,
 
     GBRAP12LE,
-
-
 
     GBRAP10BE,
 
     GBRAP10LE,
 
-
-
     MEDIACODEC,
-
-
 
     GRAY12BE,
 
@@ -422,23 +356,15 @@ enum class PixelFormat : int {
 
     GRAY10LE,
 
-
-
     P016LE,
 
     P016BE,
 
-    
-
     D3D11,
-
-
 
     GRAY9BE,
 
     GRAY9LE,
-
-
 
     GBRPF32BE,
 
@@ -448,27 +374,17 @@ enum class PixelFormat : int {
 
     GBRAPF32LE,
 
-    
-
     DRM_PRIME,
 
-    
-
     OPENCL,
-
-
 
     GRAY14BE,
 
     GRAY14LE,
 
-
-
     GRAYF32BE,
 
     GRAYF32LE,
-
-
 
     YUVA422P12BE,
 
@@ -478,23 +394,15 @@ enum class PixelFormat : int {
 
     YUVA444P12LE,
 
-
-
     NV24,
 
     NV42,
 
-    
-
     VULKAN,
-
-
 
     Y210BE,
 
     Y210LE,
-
-
 
     X2RGB10LE,
 
@@ -504,109 +412,71 @@ enum class PixelFormat : int {
 
     X2BGR10BE,
 
-
-
     P210BE,
 
     P210LE,
-
-
 
     P410BE,
 
     P410LE,
 
-
-
     P216BE,
 
     P216LE,
-
-
 
     P416BE,
 
     P416LE,
 
-
-
     VUYA,
-
-
 
     RGBAF16BE,
 
     RGBAF16LE,
 
-
-
     VUYX,
-
-
 
     P012LE,
 
     P012BE,
 
-
-
     Y212BE,
 
     Y212LE,
-
-
 
     XV30BE,
 
     XV30LE,
 
-
-
     XV36BE,
 
     XV36LE,
-
-
 
     RGBF32BE,
 
     RGBF32LE,
 
-
-
     RGBAF32BE,
 
     RGBAF32LE,
-
-
 
     P212BE,
 
     P212LE,
 
-
-
-    P412BE, 
+    P412BE,
 
     P412LE,
-
-
 
     GBRAP14BE,
 
     GBRAP14LE,
 
-    
-
     D3D12,
-
-
 
     NB
 
 };
-
-
 
 enum class HardwareAccelerationType : int {
 
@@ -617,8 +487,6 @@ enum class HardwareAccelerationType : int {
     D3D11VA = 7,
 
 };
-
-
 
 struct RenderSettings {
 
@@ -643,7 +511,5 @@ struct RenderSettings {
     std::filesystem::path m_outputFile;
 
 };
-
-
 
 END_FFMPEG_NAMESPACE_V

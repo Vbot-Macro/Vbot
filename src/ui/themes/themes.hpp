@@ -1,7 +1,3 @@
-// themes.hpp - the list of themes and the helpers the menu uses.
-//
-// To add a theme: copy one of the files in this folder, change its colours, include it here and
-// add it to THEMES. The chosen theme and accent override are saved in Config (theme, accentOverride).
 #pragma once
 #include <Geode/Geode.hpp>
 
@@ -41,4 +37,4 @@ inline Theme current() {
 
 inline int packColor(cocos2d::ccColor3B c) { return (c.r << 16) | (c.g << 8) | c.b; }
 
-} // namespace vbot::ui
+}

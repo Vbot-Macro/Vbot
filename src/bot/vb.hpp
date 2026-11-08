@@ -1,32 +1,3 @@
-// vb.hpp - Vbot macro format (.vb) versions 1, 2 and 3, header-only, no dependencies.
-//
-// Layout (version 1, inputs only):
-//   "VBOT"            4 bytes magic
-//   version           1 byte
-//   fps               varint
-//   event count       varint
-//   events            count x varint, each = (delta << 4) | (button << 2) | (down << 1) | player
-//     delta  = frames since previous event (first event: since frame 0)
-//     button = 0 jump, 1 left, 2 right
-//     down   = 1 press, 0 release
-//     player = 0 player 1, 1 player 2
-//
-// Version 3 (what Vbot writes when it has position data) is version 1 with a snapshot section
-// added after the events:
-//   snapshot count    varint
-//   snapshots         count x ( delta varint, mask byte, then 12 bytes for each player in the mask )
-//     delta = frames since the previous snapshot (first one: since frame 0)
-//     mask  = bit 0: player 1 is included, bit 1: player 2 is included
-//     per player: x, y, y-velocity as 3 little-endian float32
-//   A snapshot is the state of the player(s) at the START of a physics step. Replay puts a player
-//   back to it if it has drifted, which keeps a long macro on track. Vbot takes one at every
-//   frame that has an input and one every 1/8 s, for both players in a 2-player level.
-//
-// Version 2 (older Vbot) had a flags byte after the version byte, and x, y, y-velocity of the
-// pressing player after every event. Vbot still reads it and converts it to snapshots.
-// Macros without any position data are written as version 1, so older Vbot versions can open them.
-//
-// Small deltas (< 8) fit in a single byte per input.
 #pragma once
 #include <cstdint>
 #include <cmath>
@@ -55,10 +26,9 @@ struct PlayerState {
     bool operator==(PlayerState const& o) const { return x == o.x && y == o.y && yVel == o.yVel; }
 };
 
-// The state of the player(s) at the start of one physics step.
 struct Snapshot {
     uint32_t frame = 0;
-    bool has[2] = {false, false}; // [0] = player 1, [1] = player 2
+    bool has[2] = {false, false};
     PlayerState p[2];
 
     bool operator==(Snapshot const& o) const {
@@ -71,8 +41,8 @@ struct Snapshot {
 
 struct Macro {
     uint32_t fps = 240;
-    std::vector<Input> inputs;    // must be sorted by frame
-    std::vector<Snapshot> snaps;  // must be sorted by frame, one per frame at most
+    std::vector<Input> inputs;
+    std::vector<Snapshot> snaps;
 };
 
 namespace detail {
@@ -128,8 +98,6 @@ inline void putEvents(std::vector<uint8_t>& out, std::vector<Input> const& input
     }
 }
 
-// Adds the state of one player at a frame to a sorted snapshot list (merging into the snapshot
-// that is already there for that frame, if any).
 inline void addState(std::vector<Snapshot>& snaps, uint32_t frame, bool player2, PlayerState const& st) {
     if (snaps.empty() || snaps.back().frame != frame) {
         Snapshot s;
@@ -140,10 +108,9 @@ inline void addState(std::vector<Snapshot>& snaps, uint32_t frame, bool player2,
     s.has[player2] = true;
     s.p[player2] = st;
 }
-} // namespace detail
+}
 
 inline std::vector<uint8_t> encode(Macro const& m) {
-    // Only use version 3 when there is position data.
     bool withSnaps = !m.snaps.empty();
 
     std::vector<uint8_t> out{'V', 'B', 'O', 'T', static_cast<uint8_t>(withSnaps ? 3 : 1)};
@@ -177,12 +144,11 @@ inline std::optional<Macro> decode(std::vector<uint8_t> const& in) {
     if (version == 2) {
         if (pos >= in.size()) return std::nullopt;
         uint8_t flags = in[pos++];
-        if (flags & ~1u) return std::nullopt; // unknown flags: written by a newer Vbot
+        if (flags & ~1u) return std::nullopt;
         v2Pos = flags & 1;
     }
     uint64_t fps, count;
     if (!detail::getVarint(in, pos, fps) || !detail::getVarint(in, pos, count)) return std::nullopt;
-    // every event takes at least 1 byte, so this rejects absurd counts early
     if (count > in.size() - pos) return std::nullopt;
 
     Macro m;
@@ -199,7 +165,6 @@ inline std::optional<Macro> decode(std::vector<uint8_t> const& in) {
                     static_cast<bool>(packed & 1)};
         m.inputs.push_back(input);
         if (v2Pos) {
-            // Version 2: the pressing player's state follows every event. NaN x = no data.
             PlayerState st;
             if (!detail::getState(in, pos, st)) return std::nullopt;
             if (!std::isnan(st.x)) {
@@ -212,7 +177,6 @@ inline std::optional<Macro> decode(std::vector<uint8_t> const& in) {
     if (version == 3) {
         uint64_t snapCount;
         if (!detail::getVarint(in, pos, snapCount)) return std::nullopt;
-        // every snapshot takes at least 2 bytes (delta + mask)
         if (snapCount > (in.size() - pos) / 2) return std::nullopt;
         m.snaps.reserve(snapCount);
         uint32_t f = 0;
@@ -222,7 +186,7 @@ inline std::optional<Macro> decode(std::vector<uint8_t> const& in) {
             uint8_t mask = in[pos++];
             if (mask == 0 || (mask & ~3u)) return std::nullopt;
             f += static_cast<uint32_t>(delta);
-            if (n > 0 && delta == 0) return std::nullopt; // one snapshot per frame
+            if (n > 0 && delta == 0) return std::nullopt;
             Snapshot s;
             s.frame = f;
             for (int i = 0; i < 2; i++) {
@@ -236,4 +200,4 @@ inline std::optional<Macro> decode(std::vector<uint8_t> const& in) {
     return m;
 }
 
-} // namespace vb
+}
