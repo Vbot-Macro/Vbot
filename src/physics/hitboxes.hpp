@@ -164,9 +164,12 @@ inline void drawPlayer(cocos2d::CCDrawNode* n, PlayerObject* p, Settings& st) {
     if (!p) return;
     auto* obj = static_cast<GameObject*>(p); // the plain GameObject versions of these functions
     // Red: the player's main box. Blue: the small inner box that decides whether a block kills you.
-    // getObjectRect(w, h) takes SCALE FACTORS of the normal box, not sizes in units.
     auto outer = obj->getObjectRect();
-    auto inner = obj->getObjectRect(PLAYER_INNER, PLAYER_INNER);
+    // The small box is worked out from the red one: getObjectRect(w, h) gives the bounding box of the
+    // turned player, which is larger than the player.
+    cocos2d::CCRect inner(outer.getMidX() - outer.size.width * PLAYER_INNER / 2.f,
+                          outer.getMidY() - outer.size.height * PLAYER_INNER / 2.f,
+                          outer.size.width * PLAYER_INNER, outer.size.height * PLAYER_INNER);
     rect(n, outer, st.hazard, st.fill);
     rect(n, inner, st.block, st.fill);
     if (st.playerRotation) {
@@ -180,18 +183,45 @@ inline void drawPlayer(cocos2d::CCDrawNode* n, PlayerObject* p, Settings& st) {
 } // namespace detail
 
 // Redraws every hitbox. `node` is the game's debug draw node (a child of the object layer).
+// The objects come from the same place the game's own hitbox drawing reads them: the section grid
+// (m_sections), limited to the sections on screen. Every index is checked against the real size.
 inline void draw(GJBaseGameLayer* gl, cocos2d::CCDrawNode* node) {
     if (!gl || !node) return;
     auto& st = Settings::get();
     node->clear();
 
-    for (auto* obj : gl->m_activeObjects) {
-        if (!obj) continue;
-        detail::drawObject(node, obj, st);
+    auto const& columns = gl->m_sections;
+    int columnCount = static_cast<int>(columns.size());
+    int left = std::max(0, gl->m_leftSectionIndex);
+    int right = std::min(gl->m_rightSectionIndex, columnCount - 1);
+
+    std::vector<GameObject*> visible;
+    for (int x = left; x <= right; x++) {
+        auto* column = columns[x];
+        if (!column) continue;
+        int cellCount = static_cast<int>(column->size());
+        int bottom = std::max(0, gl->m_bottomSectionIndex);
+        int top = std::min(gl->m_topSectionIndex, cellCount - 1);
+        for (int y = bottom; y <= top; y++) {
+            auto* cell = (*column)[y];
+            if (!cell) continue;
+            for (auto* obj : *cell) {
+                if (obj) visible.push_back(obj);
+            }
+        }
     }
+
+    // An object that touches several sections is listed in each: draw it once.
+    std::sort(visible.begin(), visible.end());
+    visible.erase(std::unique(visible.begin(), visible.end()), visible.end());
+    for (auto* obj : visible) detail::drawObject(node, obj, st);
+
     if (st.player) {
         detail::drawPlayer(node, gl->m_player1, st);
-        if (gl->m_gameState.m_isDualMode) detail::drawPlayer(node, gl->m_player2, st);
+        // the second player only counts while it is shown, or its box is left behind at the spawn point
+        if (gl->m_gameState.m_isDualMode && gl->m_player2 && gl->m_player2->isVisible()) {
+            detail::drawPlayer(node, gl->m_player2, st);
+        }
     }
 }
 
