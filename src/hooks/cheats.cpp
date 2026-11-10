@@ -24,6 +24,7 @@ constexpr int MAX_STEPS_PER_FRAME = 1000;
 bool g_skipDraw = false;
 bool g_postUpdateRan = false;
 bool g_announced = false;
+bool g_deathShown = false;
 
 bool g_planActive = false;
 int g_planCount = 1;
@@ -196,7 +197,7 @@ class $modify(VbDebugDraw, GJBaseGameLayer) {
     void updateDebugDraw() {
         auto* pl = PlayLayer::get();
         bool inLevel = pl && static_cast<GJBaseGameLayer*>(pl) == static_cast<GJBaseGameLayer*>(this);
-        if (!inLevel || !vbot::Config::get().hitboxes || !m_debugDrawNode) {
+        if (!inLevel || !(vbot::Config::get().hitboxes || g_deathShown) || !m_debugDrawNode) {
             GJBaseGameLayer::updateDebugDraw();
             return;
         }
@@ -209,6 +210,20 @@ class $modify(VbCheatPlayLayer, PlayLayer) {
         if (vbot::Config::get().noclip && object != m_anticheatSpike) return;
         vbot::Renderer::get().notePlayerDied();
         PlayLayer::destroyPlayer(player, object);
+        auto& cfg = vbot::Config::get();
+        if (cfg.shbod && !cfg.hitboxes) {
+            g_deathShown = true;
+            drawGameHitboxes(this);
+        }
+    }
+
+    void resetLevel() {
+        PlayLayer::resetLevel();
+        if (!g_deathShown) return;
+        g_deathShown = false;
+        if (vbot::Config::get().hitboxes) return;
+        updateDebugDrawSettings();
+        if (!m_isDebugDrawEnabled && m_debugDrawNode) m_debugDrawNode->clear();
     }
 
     void postUpdate(float dt) {
