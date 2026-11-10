@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: 13625272074
+          run-id: 42500764198
+          repository: Vbot-Macro/Vbot
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifact
+
+      - name: List downloaded files
+        run: ls -R artifact
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v1.0.0-alpha.1
+          name: v1.0.0-alpha.1
+          files: artifact/**
+          prerelease: false
+          make_latest: true
+          body: |
+            - Initial alpha Release
+            - Added 2.2091 Support With Geode Version v6.0.0-alpha.1
+            - Improved hitboxes
+            - Autoclicker
+            - SHBOD (Show Hitboxes On Death)
+          fail_on_unmatched_files: true
