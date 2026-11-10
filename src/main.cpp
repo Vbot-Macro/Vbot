@@ -55,6 +55,38 @@ void applySnapshot(GJBaseGameLayer* gl, vb::Snapshot const& sn) {
     }
 }
 
+int g_acTick = 0;
+bool g_acHeld[2] = {false, false};
+
+void runAutoclicker(GJBaseGameLayer* gl) {
+    auto& cfg = vbot::Config::get();
+    auto* pl = PlayLayer::get();
+    bool active = cfg.autoclicker && vbot::State::get().mode != vbot::Mode::Replaying &&
+                  pl && !pl->m_playerDied;
+    bool want[2] = {cfg.acP1, cfg.acP2};
+
+    if (!active) {
+        for (int i = 0; i < 2; i++) {
+            if (!g_acHeld[i]) continue;
+            gl->handleButton(false, 1, i == 0);
+            g_acHeld[i] = false;
+        }
+        g_acTick = 0;
+        return;
+    }
+
+    int hold = std::max(1, cfg.acHold);
+    int release = std::max(1, cfg.acRelease);
+    bool down = (g_acTick % (hold + release)) < hold;
+    for (int i = 0; i < 2; i++) {
+        bool should = want[i] && down;
+        if (should == g_acHeld[i]) continue;
+        gl->handleButton(should, 1, i == 0);
+        g_acHeld[i] = should;
+    }
+    g_acTick++;
+}
+
 }
 
 class $modify(VbBaseGameLayer, GJBaseGameLayer) {
@@ -93,6 +125,8 @@ class $modify(VbBaseGameLayer, GJBaseGameLayer) {
             }
         }
 
+        runAutoclicker(this);
+
         GJBaseGameLayer::processCommands(dt, isHalfTick, isLastTick);
         s.frame++;
     }
@@ -115,6 +149,8 @@ class $modify(VbPlayLayer, PlayLayer) {
 
     void resetLevel() {
         PlayLayer::resetLevel();
+        g_acTick = 0;
+        g_acHeld[0] = g_acHeld[1] = false;
         auto& s = vbot::State::get();
         vbot::Renderer::get().onRestart();
 
