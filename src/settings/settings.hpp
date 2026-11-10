@@ -18,6 +18,12 @@ struct Config {
     bool speedHack = false;
     float speed = 1.0f;
     bool tpsUnavailable = false;
+    bool autoclicker = false;
+    bool acP1 = true;
+    bool acP2 = false;
+    int acHold = 1;
+    int acRelease = 1;
+    bool shbod = false;
 
     int renderWidth = 1920;
     int renderHeight = 1080;
@@ -58,6 +64,12 @@ struct Config {
         mod->setSavedValue<int>("tps", tps);
         mod->setSavedValue<bool>("speed-hack", speedHack);
         mod->setSavedValue<float>("speed", speed);
+        mod->setSavedValue<bool>("autoclicker", autoclicker);
+        mod->setSavedValue<bool>("ac-p1", acP1);
+        mod->setSavedValue<bool>("ac-p2", acP2);
+        mod->setSavedValue<int>("ac-hold", acHold);
+        mod->setSavedValue<int>("ac-release", acRelease);
+        mod->setSavedValue<bool>("shbod", shbod);
 
         mod->setSavedValue<int>("render-width", renderWidth);
         mod->setSavedValue<int>("render-height", renderHeight);
@@ -88,6 +100,12 @@ private:
         );
         c.speedHack = mod->getSavedValue<bool>("speed-hack", c.speedHack);
         c.speed = mod->getSavedValue<float>("speed", c.speed);
+        c.autoclicker = mod->getSavedValue<bool>("autoclicker", c.autoclicker);
+        c.acP1 = mod->getSavedValue<bool>("ac-p1", c.acP1);
+        c.acP2 = mod->getSavedValue<bool>("ac-p2", c.acP2);
+        c.acHold = std::clamp(mod->getSavedValue<int>("ac-hold", c.acHold), 1, 1000);
+        c.acRelease = std::clamp(mod->getSavedValue<int>("ac-release", c.acRelease), 1, 1000);
+        c.shbod = mod->getSavedValue<bool>("shbod", c.shbod);
 
         c.renderWidth = mod->getSavedValue<int>("render-width", c.renderWidth);
         c.renderHeight = mod->getSavedValue<int>("render-height", c.renderHeight);
