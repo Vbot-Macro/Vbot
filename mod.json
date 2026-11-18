@@ -1,48 +1,17 @@
 {
-    "geode": "6.0.0-alpha.1",
-    "gd": {
-        "win": "2.2091",
-        "android": "2.2091"
-    },
-    "id": "t1fy.vbot",
-    "name": "Vbot",
-    "version": "1.0.0-alpha.1",
-    "developer": "T1fyOwO",
-    "description": "Multi Purpose Macro/Render Tool For Geometry Dash.",
-    "links": {
-        "community": "https://discord.gg/Cz8qDxSGTN",
-        "source": "https://github.com/Vbot-Macro/Vbot"
-    },
-    "dependencies": {
-        "geode.node-ids": ">=v1.23.3"
-    },
-    "resources": {
-        "sprites": [
-            "resources/*.png"
-        ]
-    },
-    "settings": {
-        "button-size": {
-            "type": "float",
-            "name": "Button size",
-            "description": "Size of the macro button on screen, in pixels.",
-            "default": 60.0,
-            "min": 20.0,
-            "max": 200.0,
-            "control": {
-                "slider": true
-            }
-        },
-        "button-opacity": {
-            "type": "float",
-            "name": "Button opacity",
-            "description": "How see-through the macro button is, in percent.",
-            "default": 100.0,
-            "min": 10.0,
-            "max": 100.0,
-            "control": {
-                "slider": true
-            }
-        }
-    }
+	"geode": "6.0.0-alpha.2",
+	"gd": {
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
+	},
+	"id": "t1fyowo.vbot",
+	"name": "Vbot",
+	"version": "v1.0.0",
+	"developer": "T1fyOwO",
+	"description": "",
+	"dependencies": {
+		"geode.node-ids": ">=v1.23.3"
+	}
 }
